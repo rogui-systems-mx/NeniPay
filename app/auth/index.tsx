@@ -12,7 +12,7 @@ import {
     sendPasswordResetEmail,
     signInWithEmailAndPassword
 } from 'firebase/auth';
-import { Eye, EyeOff, LogIn, Mail, Moon, Smartphone, Sun, User as UserIcon } from 'lucide-react-native';
+import { Eye, EyeOff, LogIn, Mail, Moon, Smartphone, Sun, User as UserIcon, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
     Alert,
@@ -333,24 +333,25 @@ export default function AuthScreen() {
 
 
             <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 visible={forgotPasswordModalVisible}
                 onRequestClose={() => setForgotPasswordModalVisible(false)}
             >
-                <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-                    <View style={[styles.modalContent, { backgroundColor: colors.card, padding: 24, borderRadius: 24, width: '90%', maxHeight: 300 }]}>
+                <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.card, padding: 24, borderRadius: 28, width: '90%', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20 }]}>
                         <TouchableOpacity
-                            style={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}
+                            style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}
                             onPress={() => setForgotPasswordModalVisible(false)}
                         >
-                            <Text style={{ fontSize: 24, color: colors.text }}>×</Text>
+                            <X size={24} color={colors.text} />
                         </TouchableOpacity>
 
-                        <Text style={[styles.title, { fontSize: 22, marginTop: 10, marginBottom: 8 }]}>Recuperar Contraseña</Text>
-                        <Text style={[styles.subtitle, { marginBottom: 20 }]}>Ingresa tu correo y te enviaremos las instrucciones.</Text>
+                        <Text style={[styles.title, { fontSize: 24, textAlign: 'left', marginTop: 10, marginBottom: 8 }]}>Recuperar Contraseña</Text>
+                        <Text style={[styles.subtitle, { textAlign: 'left', marginBottom: 24 }]}>Ingresa tu correo y te enviaremos las instrucciones.</Text>
 
-                        <View style={[styles.inputGroup, { marginBottom: 24 }]}>
+                        <View style={[styles.inputGroup, { marginBottom: 32 }]}>
+                            <Text style={styles.label}>Correo Electrónico</Text>
                             <View style={styles.inputWrapper}>
                                 <Mail size={20} color={colors.textSecondary} style={styles.inputIcon} />
                                 <TextInput
@@ -365,17 +366,19 @@ export default function AuthScreen() {
                             </View>
                         </View>
 
-                        <StitchButton
-                            title={loading ? "Enviando..." : "Enviar Enlace"}
-                            onPress={handleForgotPassword}
-                            loading={loading}
-                            style={{ marginBottom: 12 }}
-                        />
-                        <StitchButton
-                            title="Cancelar"
-                            variant="outline"
-                            onPress={() => setForgotPasswordModalVisible(false)}
-                        />
+                        <View style={{ gap: 12 }}>
+                            <StitchButton
+                                title={loading ? "Enviando..." : "Enviar Enlace"}
+                                onPress={handleForgotPassword}
+                                loading={loading}
+                            />
+                            <TouchableOpacity
+                                onPress={() => setForgotPasswordModalVisible(false)}
+                                style={{ paddingVertical: 12, alignItems: 'center' }}
+                            >
+                                <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Cancelar</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>

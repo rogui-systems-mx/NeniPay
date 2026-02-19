@@ -261,10 +261,12 @@ export default function ProductosScreen() {
                     <View style={styles.empty}>
                         <Text style={styles.emptyText}>No hay productos en tu catálogo</Text>
                         {!searchQuery && (
-                            <TouchableOpacity style={styles.addButton} onPress={() => { setModalVisible(true); resetFields(); }}>
-                                <Plus color="#fff" size={24} />
-                                <Text style={styles.addButtonText}>Agregar Primer Producto</Text>
-                            </TouchableOpacity>
+                            <StitchButton
+                                title="Agregar Primer Producto"
+                                onPress={() => { setModalVisible(true); resetFields(); }}
+                                icon={<Plus color="#fff" size={24} />}
+                                style={{ marginTop: 20 }}
+                            />
                         )}
                     </View>
                 }
@@ -376,8 +378,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     iconButton: { padding: 8 },
     empty: { marginTop: 100, alignItems: 'center' },
     emptyText: { color: colors.textSecondary, fontSize: 16, marginBottom: 20 },
-    addButton: { backgroundColor: colors.primary, flexDirection: 'row', padding: 16, borderRadius: 16, alignItems: 'center' },
-    addButtonText: { color: '#fff', marginLeft: 10, fontWeight: '700' },
     fabContainer: { position: 'absolute', bottom: 30, alignSelf: 'center', width: 72, height: 72, borderRadius: 36, elevation: 8, shadowColor: colors.primary, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 15 },
     fab: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },

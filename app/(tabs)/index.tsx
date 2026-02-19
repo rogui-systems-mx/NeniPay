@@ -291,13 +291,12 @@ export default function ClientesScreen() {
               {searchQuery ? 'No se encontraron clientes' : 'No tienes clientes aún'}
             </Text>
             {!searchQuery && (
-              <StitchPressable
-                style={[styles.addButton, { backgroundColor: colors.primary }]}
+              <StitchButton
+                title="Agregar Primer Cliente"
                 onPress={() => setModalVisible(true)}
-              >
-                <Plus color="#fff" size={24} />
-                <Text style={styles.addButtonText}>Agregar Primer Cliente</Text>
-              </StitchPressable>
+                icon={<Plus color="#fff" size={24} />}
+                style={{ marginTop: 20 }}
+              />
             )}
           </View>
         }
@@ -490,17 +489,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 16,
     marginBottom: 20,
-  },
-  addButton: {
-    flexDirection: 'row',
-    padding: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: '#fff',
-    marginLeft: 10,
-    fontWeight: '700',
   },
   fabContainer: {
     position: 'absolute',
