@@ -1,0 +1,13 @@
+Starting project at C:\Users\Usuario\.gemini\antigravity\scratch\nenipay
+TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".ts" for C:\Users\Usuario\.gemini\antigravity\scratch\nenipay\node_modules\expo-modules-core\src\index.ts
+TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".ts" for C:\Users\Usuario\.gemini\antigravity\scratch\nenipay\node_modules\expo-modules-core\src\index.ts
+    at Object.getFileProtocolModuleFormat [as file:] (node:internal/modules/esm/get_format:185:9)
+    at defaultGetFormat (node:internal/modules/esm/get_format:211:36)
+    at defaultLoadSync (node:internal/modules/esm/load:158:16)
+    at #loadAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:795:12)
+    at #loadSync (node:internal/modules/esm/loader:815:49)
+    at ModuleLoader.loadAndTranslateForImportInRequiredESM (node:internal/modules/esm/loader:430:38)
+    at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:569:36)
+    at afterResolve (node:internal/modules/esm/loader:624:52)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:630:12)
+    at ModuleJobSync.syncLink (node:internal/modules/esm/module_job:143:33)

@@ -1,0 +1,7 @@
+! No git repo found in current directory
+› Use git to track file changes before running commands that modify project files.
+Git status is dirty but the command will continue because the terminal is not interactive.
+- Clearing android
+× Failed to delete android code: EBUSY: resource busy or locked, rmdir 'C:\Users\Usuario\.gemini\antigravity\scratch\nenipay\android'
+Error: EBUSY: resource busy or locked, rmdir 'C:\Users\Usuario\.gemini\antigravity\scratch\nenipay\android'
+Error: EBUSY: resource busy or locked, rmdir 'C:\Users\Usuario\.gemini\antigravity\scratch\nenipay\android'

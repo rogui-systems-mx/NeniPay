@@ -1,0 +1,41 @@
+name: Build APK
+on:
+  workflow_dispatch: # Allows manual trigger
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "components/**"
+      - "constants/**"
+      - "context/**"
+      - "hooks/**"
+      - "utils/**"
+      - "app.json"
+      - "eas.json"
+      - "package.json"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🏗 Checkout
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: 🏗 Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: 🚀 Build APK
+        run: eas build --platform android --profile preview --non-interactive
