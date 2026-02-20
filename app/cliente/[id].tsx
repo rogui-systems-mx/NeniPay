@@ -16,7 +16,7 @@ import { TimelineItem } from '../../components/TimelineItem';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useNeniStore } from '../../hooks/useNeniStore';
-import { Transaction, TransactionType } from '../../hooks/useNeniStore.types';
+import { Transaction, TransactionItem, TransactionType } from '../../hooks/useNeniStore.types';
 import { useProductStore } from '../../hooks/useProductStore';
 import { uploadImage } from '../../utils/firebase';
 import { shareClientHistoryPDF } from '../../utils/pdf';
@@ -275,7 +275,7 @@ export default function ClienteDetailScreen() {
 
     const handleExportPDF = async () => {
         try {
-            const success = await shareClientHistoryPDF(client, businessName);
+            const success = await shareClientHistoryPDF(client);
             if (!success) {
                 // Optional: Show specific error if needed, but pdf utility already handles Alerts
             }
@@ -326,7 +326,7 @@ export default function ClienteDetailScreen() {
                                                         key={p.id}
                                                         style={[
                                                             styles.productCardLarge,
-                                                            quantity > 0 && { borderColor: colors.primary, backgroundColor: colors.primary + '10' }
+                                                            quantity > 0 ? { borderColor: colors.primary, backgroundColor: colors.primary + '10' } : {}
                                                         ]}
                                                         onPress={() => {
                                                             const newCart = { ...cart };
@@ -668,79 +668,85 @@ export default function ClienteDetailScreen() {
                 </KeyboardAvoidingView>
             </Modal>
 
-            {/* Manual Item Modal */}
             <Modal
                 animationType="fade"
                 transparent={true}
                 visible={manualItemModalVisible}
                 onRequestClose={() => setManualItemModalVisible(false)}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Añadir Item Manual</Text>
-                            <StitchPressable onPress={() => setManualItemModalVisible(false)}>
-                                <X color={colors.text} size={24} />
-                            </StitchPressable>
-                        </View>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={{ flex: 1 }}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Añadir Item Manual</Text>
+                                <StitchPressable onPress={() => setManualItemModalVisible(false)}>
+                                    <X color={colors.text} size={24} />
+                                </StitchPressable>
+                            </View>
 
-                        <StitchInput
-                            label="Nombre del Producto"
-                            value={newManualName}
-                            onChangeText={setNewManualName}
-                            placeholder="Ej. Servicio de Envío"
-                            isDark={isDark}
-                        />
-
-                        <View style={{ flexDirection: 'row', gap: 12 }}>
-                            <View style={{ flex: 1 }}>
+                            <ScrollView showsVerticalScrollIndicator={false}>
                                 <StitchInput
-                                    label="Precio ($)"
-                                    value={newManualPrice}
-                                    onChangeText={setNewManualPrice}
-                                    placeholder="0.00"
-                                    keyboardType="numeric"
+                                    label="Nombre del Producto"
+                                    value={newManualName}
+                                    onChangeText={setNewManualName}
+                                    placeholder="Ej. Servicio de Envío"
                                     isDark={isDark}
                                 />
-                            </View>
-                            <View style={{ width: 100 }}>
-                                <StitchInput
-                                    label="Cant."
-                                    value={newManualQuantity}
-                                    onChangeText={setNewManualQuantity}
-                                    placeholder="1"
-                                    keyboardType="numeric"
-                                    isDark={isDark}
-                                />
-                            </View>
-                        </View>
 
-                        <StitchButton
-                            title="Añadir al Carrito"
-                            onPress={() => {
-                                const price = parseFloat(newManualPrice.replace(',', '.'));
-                                const qty = parseInt(newManualQuantity) || 1;
-                                if (!newManualName || isNaN(price)) {
-                                    Alert.alert('Error', 'Completa nombre y precio');
-                                    return;
-                                }
-                                const newItem: TransactionItem = {
-                                    productName: newManualName,
-                                    quantity: qty,
-                                    priceAtSale: price
-                                };
-                                const updatedManual = [...manualItems, newItem];
-                                setManualItems(updatedManual);
-                                updateSalesSummary(cart, updatedManual);
-                                setManualItemModalVisible(false);
-                                setNewManualName('');
-                                setNewManualPrice('');
-                                setNewManualQuantity('1');
-                            }}
-                            style={{ marginTop: 10 }}
-                        />
+                                <View style={{ flexDirection: 'row', gap: 12 }}>
+                                    <View style={{ flex: 1 }}>
+                                        <StitchInput
+                                            label="Precio ($)"
+                                            value={newManualPrice}
+                                            onChangeText={setNewManualPrice}
+                                            placeholder="0.00"
+                                            keyboardType="numeric"
+                                            isDark={isDark}
+                                        />
+                                    </View>
+                                    <View style={{ width: 100 }}>
+                                        <StitchInput
+                                            label="Cant."
+                                            value={newManualQuantity}
+                                            onChangeText={setNewManualQuantity}
+                                            placeholder="1"
+                                            keyboardType="numeric"
+                                            isDark={isDark}
+                                        />
+                                    </View>
+                                </View>
+
+                                <StitchButton
+                                    title="Añadir al Carrito"
+                                    onPress={() => {
+                                        const price = parseFloat(newManualPrice.replace(',', '.'));
+                                        const qty = parseInt(newManualQuantity) || 1;
+                                        if (!newManualName || isNaN(price)) {
+                                            Alert.alert('Error', 'Completa nombre y precio');
+                                            return;
+                                        }
+                                        const newItem: TransactionItem = {
+                                            productName: newManualName,
+                                            quantity: qty,
+                                            priceAtSale: price
+                                        };
+                                        const updatedManual = [...manualItems, newItem];
+                                        setManualItems(updatedManual);
+                                        updateSalesSummary(cart, updatedManual);
+                                        setManualItemModalVisible(false);
+                                        setNewManualName('');
+                                        setNewManualPrice('');
+                                        setNewManualQuantity('1');
+                                    }}
+                                    style={{ marginTop: 10 }}
+                                />
+                            </ScrollView>
+                        </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
 
             {/* Transaction Menu Modal (Bottom Sheet) */}
