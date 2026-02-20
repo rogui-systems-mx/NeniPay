@@ -503,6 +503,7 @@ export default function ClienteDetailScreen() {
                                             onChangeText={setDescription}
                                             placeholder="Ej. Pago semanal"
                                             isDark={isDark}
+                                            editable={modalType !== 'sale' || (Object.keys(cart).length === 0 && manualItems.length === 0)}
                                         />
                                     </>
                                 )}
@@ -709,6 +710,7 @@ export default function ClienteDetailScreen() {
                                     placeholder="Descripción"
                                     isDark={isDark}
                                     multiline
+                                    editable={selectedTransaction?.type !== 'sale' || (Object.keys(editCart).length === 0 && editManualItems.length === 0)}
                                 />
 
                                 <StitchButton
