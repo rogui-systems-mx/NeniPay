@@ -38,19 +38,19 @@ export const DEFAULT_SALE_TEMPLATE = `Hola {name}! 👋
 
 Se ha registrado una nueva compra:
 📦 {description}
-💵 ${"${amount}"}
+💵 {amount}
 
-Tu saldo actual es: ${"${balance}"}
+Tu saldo actual es: {balance}
 
 ¡Gracias por tu preferencia! 😊`;
 
 export const DEFAULT_PAYMENT_TEMPLATE = `Hola {name}! 👋
 
 Se ha registrado tu pago:
-💰 ${"${amount}"}
+💰 {amount}
 📝 {description}
 
-Tu saldo pendiente es: ${"${balance}"}
+Tu saldo pendiente es: {balance}
 
 ¡Gracias por tu pago! 😊`;
 
@@ -79,9 +79,9 @@ export const generateSaleMessage = (
 
     return businessHeader + template
         .replace(/{name}/g, clientName)
-        .replace(/{amount}/g, `$${amount.toLocaleString()}`)
+        .replace(/\$?\s?{amount}/g, `$${amount.toLocaleString()}`)
         .replace(/{description}/g, description + details)
-        .replace(/{balance}/g, `$${newBalance.toLocaleString()}`);
+        .replace(/\$?\s?{balance}/g, `$${newBalance.toLocaleString()}`);
 };
 
 /**
@@ -93,9 +93,9 @@ export const generatePaymentMessage = (clientName: string, amount: number, descr
 
     let message = businessHeader + template
         .replace(/{name}/g, clientName)
-        .replace(/{amount}/g, `$${amount.toLocaleString()}`)
+        .replace(/\$?\s?{amount}/g, `$${amount.toLocaleString()}`)
         .replace(/{description}/g, description)
-        .replace(/{balance}/g, `$${newBalance.toLocaleString()}`);
+        .replace(/\$?\s?{balance}/g, `$${newBalance.toLocaleString()}`);
 
     if (isPaidOff && template === DEFAULT_PAYMENT_TEMPLATE) {
         message = businessHeader + `Hola ${clientName}! 👋\n\n` +
