@@ -48,8 +48,11 @@ export default function ClienteDetailScreen() {
     const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(new Date().getMonth());
     const [notifyViaWhatsApp, setNotifyViaWhatsApp] = useState(true);
     const [cart, setCart] = useState<{ [productId: string]: number }>({});
+    const [editCart, setEditCart] = useState<{ [productId: string]: number }>({});
     const [manualItems, setManualItems] = useState<TransactionItem[]>([]);
+    const [editManualItems, setEditManualItems] = useState<TransactionItem[]>([]);
     const [manualItemModalVisible, setManualItemModalVisible] = useState(false);
+    const [isEditingManual, setIsEditingManual] = useState(false);
     const [newManualName, setNewManualName] = useState('');
     const [newManualPrice, setNewManualPrice] = useState('');
     const [newManualQuantity, setNewManualQuantity] = useState('1');
@@ -108,10 +111,11 @@ export default function ClienteDetailScreen() {
         setDescription(type === 'sale' ? '' : 'Abono a cuenta');
         setCart({});
         setManualItems([]);
+        setIsEditingManual(false);
         setModalVisible(true);
     };
 
-    const updateSalesSummary = (currentCart: { [id: string]: number }, currentManual: TransactionItem[]) => {
+    const updateSalesSummary = (currentCart: { [id: string]: number }, currentManual: TransactionItem[], isEdit: boolean = false) => {
         const cartItems = Object.entries(currentCart).map(([id, qty]) => {
             const prod = products.find(pr => pr.id === id);
             return { name: prod?.name || '', total: (prod?.price || 0) * qty };
@@ -128,8 +132,13 @@ export default function ClienteDetailScreen() {
             finalDesc = finalDesc ? `${finalDesc}, ${manualDesc}` : manualDesc;
         }
 
-        setAmount(totalAmount.toString());
-        setDescription(finalDesc);
+        if (isEdit) {
+            setAmount(totalAmount.toString());
+            setDescription(finalDesc);
+        } else {
+            setAmount(totalAmount.toString());
+            setDescription(finalDesc);
+        }
     };
 
     const handleSaveTransaction = async () => {
@@ -172,6 +181,24 @@ export default function ClienteDetailScreen() {
         setSelectedTransaction(transaction);
         setAmount(transaction.amount.toString());
         setDescription(transaction.description);
+
+        // Initialize edit states from transaction items
+        const newCart: { [id: string]: number } = {};
+        const newManual: TransactionItem[] = [];
+
+        if (transaction.items) {
+            transaction.items.forEach(item => {
+                if (item.productId) {
+                    newCart[item.productId] = (newCart[item.productId] || 0) + item.quantity;
+                } else {
+                    newManual.push(item);
+                }
+            });
+        }
+
+        setEditCart(newCart);
+        setEditManualItems(newManual);
+        setIsEditingManual(true);
         setEditTransactionModalVisible(true);
     };
 
@@ -185,11 +212,29 @@ export default function ClienteDetailScreen() {
             Alert.alert('Error', 'Por favor ingresa una descripción');
             return;
         }
+
         if (selectedTransaction) {
             try {
-                updateTransaction(client.id, selectedTransaction.id, numAmount, description.trim());
+                let itemsToUpdate: TransactionItem[] | undefined = undefined;
+
+                if (selectedTransaction.type === 'sale') {
+                    const catalogItems = Object.entries(editCart).map(([productId, quantity]) => {
+                        const product = products.find(p => p.id === productId);
+                        return {
+                            productId,
+                            productName: product?.name || 'Producto',
+                            quantity,
+                            priceAtSale: product?.price || 0,
+                        };
+                    });
+                    itemsToUpdate = [...catalogItems, ...editManualItems];
+                }
+
+                updateTransaction(client.id, selectedTransaction.id, numAmount, description.trim(), itemsToUpdate);
                 setEditTransactionModalVisible(false);
                 setSelectedTransaction(null);
+                setEditCart({});
+                setEditManualItems([]);
             } catch (error) {
                 console.error('Error updating transaction:', error);
                 Alert.alert('Error', 'No se pudo actualizar la transacción');
@@ -504,15 +549,149 @@ export default function ClienteDetailScreen() {
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>Editar Transacción</Text>
+                                <Text style={styles.modalTitle}>
+                                    {selectedTransaction?.type === 'sale' ? 'Editar Venta' : 'Editar Abono'}
+                                </Text>
                                 <StitchPressable onPress={() => setEditTransactionModalVisible(false)} style={{ padding: 4 }}>
                                     <X color={colors.text} size={24} />
                                 </StitchPressable>
                             </View>
 
                             <ScrollView showsVerticalScrollIndicator={false}>
+                                {selectedTransaction?.type === 'sale' && (
+                                    <View style={styles.productSelectionContainer}>
+                                        <View style={styles.sectionHeaderSmall}>
+                                            <Text style={styles.inputLabel}>Seleccionar del Catálogo</Text>
+                                        </View>
+
+                                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScrollLarge}>
+                                            {products.map(p => {
+                                                const quantity = editCart[p.id] || 0;
+                                                return (
+                                                    <StitchPressable
+                                                        key={p.id}
+                                                        style={[
+                                                            styles.productCardLarge,
+                                                            quantity > 0 ? { borderColor: colors.primary, backgroundColor: colors.primary + '10' } : {}
+                                                        ]}
+                                                        onPress={() => {
+                                                            const newCart = { ...editCart };
+                                                            if (quantity > 0) {
+                                                                delete newCart[p.id];
+                                                            } else {
+                                                                newCart[p.id] = 1;
+                                                            }
+                                                            setEditCart(newCart);
+                                                            updateSalesSummary(newCart, editManualItems, true);
+                                                        }}
+                                                    >
+                                                        {p.image ? (
+                                                            <Image source={{ uri: p.image }} style={styles.productImageLarge} />
+                                                        ) : (
+                                                            <View style={[styles.productImageLarge, { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }]}>
+                                                                <ShoppingCart size={32} color={colors.textSecondary} />
+                                                            </View>
+                                                        )}
+                                                        <View style={styles.productCardInfo}>
+                                                            <Text style={styles.productCardName} numberOfLines={1}>{p.name}</Text>
+                                                            <Text style={styles.productCardPrice}>${p.price.toLocaleString()}</Text>
+                                                        </View>
+                                                        {quantity > 0 && (
+                                                            <View style={styles.productSelectedBadge}>
+                                                                <Text style={styles.productSelectedBadgeText}>{quantity}</Text>
+                                                            </View>
+                                                        )}
+                                                    </StitchPressable>
+                                                );
+                                            })}
+                                        </ScrollView>
+
+                                        <StitchPressable
+                                            onPress={() => {
+                                                setIsEditingManual(true);
+                                                setManualItemModalVisible(true);
+                                            }}
+                                            style={{ marginBottom: 24 }}
+                                        >
+                                            <View style={styles.addManualButton}>
+                                                <Plus size={20} color="#fff" />
+                                                <Text style={styles.addManualButtonText}>Añadir Item Personalizado</Text>
+                                            </View>
+                                        </StitchPressable>
+
+                                        {(Object.keys(editCart).length > 0 || editManualItems.length > 0) && (
+                                            <View style={styles.cartSummaryElegant}>
+                                                <Text style={styles.cartTitleElegant}>PRODUCTOS EN ESTA VENTA</Text>
+
+                                                {Object.entries(editCart).map(([prodId, qty]) => {
+                                                    const prod = products.find(p => p.id === prodId);
+                                                    if (!prod) return null;
+                                                    return (
+                                                        <View key={prodId} style={styles.cartItemElegant}>
+                                                            <View style={styles.cartItemIdentity}>
+                                                                <Text style={styles.cartItemNameElegant}>{prod.name}</Text>
+                                                                <Text style={styles.cartItemPriceElegant}>${prod.price.toLocaleString()} c/u</Text>
+                                                            </View>
+                                                            <View style={styles.cartItemActions}>
+                                                                <View style={styles.quantityControlsModern}>
+                                                                    <TouchableOpacity
+                                                                        onPress={() => {
+                                                                            const newCart = { ...editCart };
+                                                                            if (qty > 1) newCart[prodId] = qty - 1;
+                                                                            else delete newCart[prodId];
+                                                                            setEditCart(newCart);
+                                                                            updateSalesSummary(newCart, editManualItems, true);
+                                                                        }}
+                                                                        style={styles.qtyBtnModern}
+                                                                    >
+                                                                        <X size={12} color={colors.text} />
+                                                                    </TouchableOpacity>
+                                                                    <Text style={styles.qtyTextModern}>{qty}</Text>
+                                                                    <TouchableOpacity
+                                                                        onPress={() => {
+                                                                            const newCart = { ...editCart, [prodId]: qty + 1 };
+                                                                            setEditCart(newCart);
+                                                                            updateSalesSummary(newCart, editManualItems, true);
+                                                                        }}
+                                                                        style={styles.qtyBtnModern}
+                                                                    >
+                                                                        <Plus size={12} color={colors.text} />
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                                <Text style={styles.cartItemTotalElegant}>${(prod.price * qty).toLocaleString()}</Text>
+                                                            </View>
+                                                        </View>
+                                                    );
+                                                })}
+
+                                                {editManualItems.map((item, index) => (
+                                                    <View key={`manual-edit-${index}`} style={styles.cartItemElegant}>
+                                                        <View style={styles.cartItemIdentity}>
+                                                            <Text style={styles.cartItemNameElegant}>{item.productName} (Custom)</Text>
+                                                            <Text style={styles.cartItemPriceElegant}>${item.priceAtSale.toLocaleString()} c/u</Text>
+                                                        </View>
+                                                        <View style={styles.cartItemActions}>
+                                                            <TouchableOpacity
+                                                                onPress={() => {
+                                                                    const updated = editManualItems.filter((_, i) => i !== index);
+                                                                    setEditManualItems(updated);
+                                                                    updateSalesSummary(editCart, updated, true);
+                                                                }}
+                                                                style={styles.removeManualBtn}
+                                                            >
+                                                                <Trash2 size={16} color={colors.danger} />
+                                                            </TouchableOpacity>
+                                                            <Text style={styles.cartItemTotalElegant}>${(item.priceAtSale * item.quantity).toLocaleString()}</Text>
+                                                        </View>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        )}
+                                    </View>
+                                )}
+
                                 <StitchInput
-                                    label="Monto ($)"
+                                    label="Resumen Monto Total ($)"
                                     value={amount}
                                     onChangeText={setAmount}
                                     placeholder="0.00"
@@ -521,7 +700,7 @@ export default function ClienteDetailScreen() {
                                 />
 
                                 <StitchInput
-                                    label="Descripción"
+                                    label="Descripción / Lista"
                                     value={description}
                                     onChangeText={setDescription}
                                     placeholder="Descripción"
@@ -733,9 +912,15 @@ export default function ClienteDetailScreen() {
                                             quantity: qty,
                                             priceAtSale: price
                                         };
-                                        const updatedManual = [...manualItems, newItem];
-                                        setManualItems(updatedManual);
-                                        updateSalesSummary(cart, updatedManual);
+                                        if (isEditingManual) {
+                                            const updatedManual = [...editManualItems, newItem];
+                                            setEditManualItems(updatedManual);
+                                            updateSalesSummary(editCart, updatedManual, true);
+                                        } else {
+                                            const updatedManual = [...manualItems, newItem];
+                                            setManualItems(updatedManual);
+                                            updateSalesSummary(cart, updatedManual);
+                                        }
                                         setManualItemModalVisible(false);
                                         setNewManualName('');
                                         setNewManualPrice('');

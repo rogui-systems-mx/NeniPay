@@ -21,7 +21,7 @@ export interface NeniContextType {
     getClientColor: (client: Client) => string;
     // Transaction actions
     addTransaction: (clientId: string, type: TransactionType, amount: number, description: string, notifyViaWhatsApp?: boolean, items?: TransactionItem[]) => void;
-    updateTransaction: (clientId: string, transactionId: string, amount: number, description: string) => void;
+    updateTransaction: (clientId: string, transactionId: string, amount: number, description: string, items?: TransactionItem[]) => void;
     deleteTransaction: (clientId: string, transactionId: string) => void;
     whatsappSaleTemplate: string;
     whatsappPaymentTemplate: string;
@@ -278,12 +278,40 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const updateTransaction = (clientId: string, transactionId: string, amount: number, description: string) => {
+    const updateTransaction = (clientId: string, transactionId: string, amount: number, description: string, newItems?: TransactionItem[]) => {
+        let updatedProducts = [...products];
+
         const updated = clients.map(client => {
             if (client.id === clientId) {
-                const updatedTransactions = (client.transactions || []).map(t =>
-                    t.id === transactionId ? { ...t, amount, description } : t
-                );
+                const updatedTransactions = (client.transactions || []).map(t => {
+                    if (t.id === transactionId) {
+                        // Stock reconciliation logic
+                        if (t.type === 'sale') {
+                            // 1. Revert old items stock
+                            if (t.items) {
+                                t.items.forEach(oldItem => {
+                                    if (oldItem.productId) {
+                                        updatedProducts = updatedProducts.map(p =>
+                                            p.id === oldItem.productId ? { ...p, stock: (p.stock || 0) + oldItem.quantity } : p
+                                        );
+                                    }
+                                });
+                            }
+                            // 2. Apply new items stock
+                            if (newItems) {
+                                newItems.forEach(newItem => {
+                                    if (newItem.productId) {
+                                        updatedProducts = updatedProducts.map(p =>
+                                            p.id === newItem.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - newItem.quantity) } : p
+                                        );
+                                    }
+                                });
+                            }
+                        }
+                        return { ...t, amount, description, items: newItems };
+                    }
+                    return t;
+                });
                 return {
                     ...client,
                     transactions: updatedTransactions,
@@ -292,8 +320,10 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             return client;
         });
+
         setClients(updated);
-        persistChange(updated, products);
+        setProducts(updatedProducts);
+        persistChange(updated, updatedProducts);
     };
 
     const deleteTransaction = (clientId: string, transactionId: string) => {
