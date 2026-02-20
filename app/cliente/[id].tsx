@@ -565,7 +565,7 @@ export default function ClienteDetailScreen() {
                                         </View>
 
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScrollLarge}>
-                                            {products.map(p => {
+                                            {products.length > 0 ? products.map(p => {
                                                 const quantity = editCart[p.id] || 0;
                                                 return (
                                                     <StitchPressable
@@ -603,7 +603,9 @@ export default function ClienteDetailScreen() {
                                                         )}
                                                     </StitchPressable>
                                                 );
-                                            })}
+                                            }) : (
+                                                <Text style={{ color: colors.textSecondary, fontStyle: 'italic', marginBottom: 15 }}>No hay productos en el catálogo</Text>
+                                            )}
                                         </ScrollView>
 
                                         <StitchPressable
@@ -611,7 +613,7 @@ export default function ClienteDetailScreen() {
                                                 setIsEditingManual(true);
                                                 setManualItemModalVisible(true);
                                             }}
-                                            style={{ marginBottom: 24 }}
+                                            style={{ marginBottom: 15 }}
                                         >
                                             <View style={styles.addManualButton}>
                                                 <Plus size={20} color="#fff" />
@@ -691,20 +693,22 @@ export default function ClienteDetailScreen() {
                                 )}
 
                                 <StitchInput
-                                    label="Resumen Monto Total ($)"
+                                    label={selectedTransaction?.type === 'sale' ? "Monto Total Estimado ($)" : "Monto del Abono ($)"}
                                     value={amount}
                                     onChangeText={setAmount}
                                     placeholder="0.00"
                                     keyboardType="numeric"
                                     isDark={isDark}
+                                    editable={selectedTransaction?.type !== 'sale' || (Object.keys(editCart).length === 0 && editManualItems.length === 0)}
                                 />
 
                                 <StitchInput
-                                    label="Descripción / Lista"
+                                    label="Descripción / Nota"
                                     value={description}
                                     onChangeText={setDescription}
                                     placeholder="Descripción"
                                     isDark={isDark}
+                                    multiline
                                 />
 
                                 <StitchButton
@@ -962,10 +966,8 @@ export default function ClienteDetailScreen() {
                                 activeOpacity={0.7}
                                 onPress={() => {
                                     if (selectedTransaction) {
-                                        setAmount(selectedTransaction.amount.toString());
-                                        setDescription(selectedTransaction.description);
                                         setShowTransactionMenu(false);
-                                        setEditTransactionModalVisible(true);
+                                        handleEditTransaction(selectedTransaction);
                                     }
                                 }}
                             >
