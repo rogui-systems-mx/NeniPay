@@ -17,9 +17,10 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.roguisystems.nenipay",
+      "package": "com.nenipay.control",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon_round.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
     },
