@@ -267,7 +267,7 @@ export default function PendientesScreen() {
                                     >
                                         <LinearGradient
                                             colors={(item.totalBalance > stats.average * 1.5
-                                                ? [colors.danger || '#ef4444', '#ff8e8e']
+                                                ? [colors.danger || '#ef4444', colors.danger || '#ef4444']
                                                 : colors.gradientPrimary || ['#3B82F6', '#8B5CF6']) as [string, string, ...string[]]}
                                             start={{ x: 0, y: 0.5 }}
                                             end={{ x: 1, y: 0.5 }}
