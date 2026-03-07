@@ -1,363 +1,135 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Plus, Search, X } from 'lucide-react-native';
+import { Plus, Search, UserPlus, MapPin, Calendar, ChevronRight } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
-import { Alert, FlatList, Image, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-// @ts-ignore - No types available for this package
-import MaskedView from '@react-native-masked-view/masked-view';
-import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { StitchButton } from '../../components/StitchButton';
+import { FlatList, Image, SafeAreaView, StyleSheet, Text, View, TextInput } from 'react-native';
 import { StitchCard } from '../../components/StitchCard';
-import { StitchInput } from '../../components/StitchInput';
-import { StitchPhoneInput } from '../../components/StitchPhoneInput';
 import { StitchPressable } from '../../components/StitchPressable';
 import { useTheme } from '../../context/ThemeContext';
 import { useNeniStore } from '../../hooks/useNeniStore';
 
 export default function ClientesScreen() {
-  const { clients, loading, addClient, updateClient, deleteClient } = useNeniStore();
+  const { clients } = useNeniStore();
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const styles = getStyles(colors, isDark);
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
-  const [clientName, setClientName] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
-  const [clientLocation, setClientLocation] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedClient, setSelectedClient] = useState<{ id: string; name: string; phone?: string; location?: string } | null>(null);
 
-  // Filter clients based on search query
   const filteredClients = useMemo(() => {
-    if (!searchQuery.trim()) return clients;
-    const query = searchQuery.toLowerCase();
-    return clients.filter(client => client.name.toLowerCase().includes(query));
+    return clients.filter(c =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.phone && c.phone.includes(searchQuery))
+    ).sort((a, b) => a.name.localeCompare(b.name));
   }, [clients, searchQuery]);
 
-  const totalPending = useMemo(() => clients.reduce((sum, c) => sum + c.totalBalance, 0), [clients]);
-  const totalClientsCount = clients.length;
-
-  if (loading) return null;
-
-  const handleAddClient = () => {
-    if (!clientName.trim()) {
-      Alert.alert('Error', 'Por favor ingresa un nombre');
-      return;
-    }
-    addClient(clientName, clientPhone.trim() || undefined, clientLocation.trim() || undefined);
-    setClientName('');
-    setClientPhone('');
-    setClientLocation('');
-    setModalVisible(false);
-  };
-
-  const handleEditClient = (client: { id: string; name: string; phone?: string; location?: string }) => {
-    setSelectedClient(client);
-    setClientName(client.name);
-    setClientPhone(client.phone || '');
-    setClientLocation(client.location || '');
-    setEditModalVisible(true);
-  };
-
-  const handleSaveEdit = () => {
-    if (!clientName.trim()) {
-      Alert.alert('Error', 'Por favor ingresa un nombre');
-      return;
-    }
-    if (selectedClient) {
-      updateClient(selectedClient.id, clientName, clientPhone.trim() || undefined, clientLocation.trim() || undefined);
-      setEditModalVisible(false);
-      setClientName('');
-      setClientPhone('');
-      setClientLocation('');
-      setSelectedClient(null);
-    }
-  };
-
-  const handleDeleteClient = (client: { id: string; name: string }) => {
-    setSelectedClient(client);
-    setDeleteDialogVisible(true);
-  };
-
-  const confirmDelete = () => {
-    if (selectedClient) {
-      deleteClient(selectedClient.id);
-      setDeleteDialogVisible(false);
-      setSelectedClient(null);
-    }
-  };
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Reciente';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' });
+    } catch {
+      return 'Reciente';
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header Area */}
       <View style={styles.header}>
-        <View style={styles.searchContainer}>
-          <Search color={colors.textSecondary} size={20} />
+        <View>
+          <Text style={styles.title}>Clientes</Text>
+          <Text style={styles.subtitle}>Gestiona tu red de contactos</Text>
+        </View>
+        <StitchPressable
+          onPress={() => router.push('/cliente/nuevo')}
+          style={styles.addBtn}
+        >
+          <LinearGradient
+            colors={colors.gradientPrimary as any}
+            style={styles.addBtnGradient}
+          >
+            <Plus color="#fff" size={24} />
+          </LinearGradient>
+        </StitchPressable>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchWrapper}>
+          <Search color={colors.textSecondary} size={20} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar clientes..."
+            placeholder="Buscar cliente por nombre o teléfono..."
             placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          {searchQuery.length > 0 && (
-            <StitchPressable onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
-              <X color={colors.textSecondary} size={20} />
-            </StitchPressable>
-          )}
         </View>
       </View>
 
-      <View style={styles.summaryHeader}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>PENDIENTE TOTAL</Text>
-          {totalPending > 0 ? (
-            Platform.OS === 'web' ? (
-              <Text
-                style={[styles.summaryValue, { color: colors.primary }]} // Web fallback to primary blue
-                numberOfLines={1}
-                adjustsFontSizeToFit
-              >
-                ${totalPending.toLocaleString()}
-              </Text>
-            ) : (
-              <MaskedView
-                style={{ height: 40, width: '100%' }}
-                maskElement={
-                  <Text
-                    style={[styles.summaryValue, { textAlign: 'center' }]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                  >
-                    ${totalPending.toLocaleString()}
-                  </Text>
-                }
-              >
-                <LinearGradient
-                  colors={colors.gradientPrimary as any}
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={{ flex: 1 }}
-                />
-              </MaskedView>
-            )
-          ) : (
-            <Text
-              style={[styles.summaryValue, { color: colors.success }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
-              ${totalPending.toLocaleString()}
-            </Text>
-          )}
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>CLIENTES</Text>
-          <Text style={styles.summaryValue}>{totalClientsCount}</Text>
-        </View>
-      </View>
-
-      {/* Add Client Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Nuevo Cliente</Text>
-                <StitchPressable onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
-                  <X color={colors.text} size={24} />
-                </StitchPressable>
-              </View>
-
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <StitchInput
-                  label="Nombre del Cliente"
-                  value={clientName}
-                  onChangeText={setClientName}
-                  placeholder="Ej. María García"
-                  isDark={isDark}
-                />
-
-                <StitchPhoneInput
-                  label="Teléfono / WhatsApp"
-                  value={clientPhone}
-                  onChangeText={setClientPhone}
-                  placeholder="5551234567"
-                />
-
-                <StitchInput
-                  label="Ubicación (Opcional)"
-                  value={clientLocation}
-                  onChangeText={setClientLocation}
-                  placeholder="Ej. Piso 1, Oficina de Tesorería"
-                  isDark={isDark}
-                />
-
-                <StitchButton
-                  title="Crear Cliente"
-                  onPress={handleAddClient}
-                  style={{ marginTop: 10 }}
-                />
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Edit Client Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={editModalVisible}
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Editar Cliente</Text>
-                <StitchPressable onPress={() => setEditModalVisible(false)} style={{ padding: 4 }}>
-                  <X color={colors.text} size={24} />
-                </StitchPressable>
-              </View>
-
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <StitchInput
-                  label="Nombre del Cliente"
-                  value={clientName}
-                  onChangeText={setClientName}
-                  placeholder="Ej. María García"
-                  isDark={isDark}
-                />
-
-                <StitchInput
-                  label="Teléfono / WhatsApp (Opcional)"
-                  value={clientPhone}
-                  onChangeText={setClientPhone}
-                  placeholder="Ej. 5551234567"
-                  keyboardType="phone-pad"
-                  isDark={isDark}
-                />
-
-                <StitchInput
-                  label="Ubicación (Opcional)"
-                  value={clientLocation}
-                  onChangeText={setClientLocation}
-                  placeholder="Ej. Piso 1, Oficina de Tesorería"
-                  isDark={isDark}
-                />
-
-                <StitchButton
-                  title="Guardar Cambios"
-                  onPress={handleSaveEdit}
-                  style={{ marginTop: 10 }}
-                />
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      <ConfirmDialog
-        visible={deleteDialogVisible}
-        title="Eliminar Cliente"
-        message={`¿Estás seguro de eliminar a ${selectedClient?.name}? Esta acción no se puede deshacer.`}
-        confirmText="Eliminar"
-        onConfirm={confirmDelete}
-        onCancel={() => setDeleteDialogVisible(false)}
-      />
-
+      {/* Client List */}
       <FlatList
         data={filteredClients}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              {searchQuery ? 'No se encontraron clientes' : 'No tienes clientes aún'}
+            <View style={styles.emptyIconContainer}>
+              <UserPlus color={colors.primary} size={48} />
+            </View>
+            <Text style={styles.emptyText}>No hay clientes</Text>
+            <Text style={styles.emptySubtext}>
+              {searchQuery ? 'No se encontraron resultados para tu búsqueda.' : 'Toca el botón + para agregar tu primer cliente.'}
             </Text>
-            {!searchQuery && (
-              <StitchButton
-                title="Agregar Primer Cliente"
-                onPress={() => setModalVisible(true)}
-                icon={<Plus color="#fff" size={24} />}
-                style={{ marginTop: 20 }}
-              />
-            )}
           </View>
         }
         renderItem={({ item }) => (
-          <StitchPressable
-            onPress={() => router.push(`/cliente/${item.id}`)}
-            scaleTo={0.98}
-          >
-            <StitchCard style={styles.clientCard}>
-              <LinearGradient
-                colors={colors.gradientPrimary as any}
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 32,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <View style={styles.clientAvatar}>
+          <StitchPressable onPress={() => router.push(`/cliente/${item.id}`)} scaleTo={0.97}>
+            <StitchCard style={styles.agendaCard}>
+              <View style={styles.cardContent}>
+                <View style={styles.avatarWrapper}>
                   {item.image ? (
-                    <Image source={{ uri: item.image }} style={styles.avatarImage} />
+                    <Image source={{ uri: item.image }} style={styles.avatarImg} />
                   ) : (
-                    <View style={styles.letterAvatarSmall}>
-                      <Text style={styles.letterAvatarTextSmall}>{getInitial(item.name)}</Text>
-                    </View>
+                    <LinearGradient
+                      colors={colors.gradientSecondary as any}
+                      style={styles.avatarPlaceholder}
+                    >
+                      <Text style={styles.avatarText}>{getInitial(item.name)}</Text>
+                    </LinearGradient>
                   )}
                 </View>
-              </LinearGradient>
-              <View style={styles.clientInfo}>
-                <Text style={styles.clientName}>{item.name}</Text>
-                {item.location && (
-                  <Text style={styles.clientLocation}>{item.location}</Text>
-                )}
-                <Text style={styles.clientBalanceStatus}>
-                  {item.totalBalance > 0 ? 'Saldo pendiente' : 'Al día'}
-                </Text>
-              </View>
-              <View style={styles.clientRight}>
-                <Text style={[styles.clientBalance, { color: item.totalBalance > 0 ? colors.danger : colors.success }]}>
-                  ${item.totalBalance.toLocaleString()}
-                </Text>
+
+                <View style={styles.infoWrapper}>
+                  <Text style={styles.clientName} numberOfLines={1}>{item.name}</Text>
+
+                  <View style={styles.metaRow}>
+                    <View style={styles.metaItem}>
+                      <MapPin color={colors.textSecondary} size={12} />
+                      <Text style={styles.metaText} numberOfLines={1}>
+                        {item.location || 'Sin dirección'}
+                      </Text>
+                    </View>
+                    <View style={styles.metaDivider} />
+                    <View style={styles.metaItem}>
+                      <Calendar color={colors.textSecondary} size={12} />
+                      <Text style={styles.metaText}>{formatDate(item.createdAt)}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.actionWrapper}>
+                  <ChevronRight color={colors.border} size={20} />
+                </View>
               </View>
             </StitchCard>
           </StitchPressable>
         )}
       />
-
-      <View style={styles.fabContainer}>
-        <StitchPressable
-          onPress={() => setModalVisible(true)}
-        >
-          <LinearGradient
-            colors={[colors.primary || '#3B82F6', colors.secondary || '#8B5CF6']}
-            style={styles.fab}
-          >
-            <Plus color="#fff" size={32} />
-          </LinearGradient>
-        </StitchPressable>
-      </View>
-    </SafeAreaView >
+    </SafeAreaView>
   );
 }
 
@@ -367,174 +139,157 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    padding: 20,
-    paddingBottom: 10,
+    padding: 24,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  title: {
+    color: colors.text,
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    marginTop: 2,
+  },
+  addBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  addBtnGradient: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+  searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
     borderRadius: 16,
-    padding: 12,
+    paddingHorizontal: 16,
+    height: 52,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  summaryHeader: {
-    flexDirection: 'row',
-    backgroundColor: colors.card,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.border,
-    marginHorizontal: 10,
-  },
-  summaryLabel: {
-    color: colors.textSecondary,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    marginBottom: 4,
-  },
-  summaryValue: {
-    color: colors.text,
-    fontSize: 24,
-    fontWeight: '900',
+  searchIcon: {
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
     color: colors.text,
-    marginLeft: 12,
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '600',
   },
   list: {
-    padding: 20,
-    paddingTop: 10,
-    paddingBottom: 100, // Space for FAB
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
-  clientCard: {
+  agendaCard: {
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 20,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
   },
-  clientAvatar: {
+  avatarWrapper: {
     width: 60,
     height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 20,
     overflow: 'hidden',
   },
-  avatarImage: {
+  avatarImg: {
     width: '100%',
     height: '100%',
   },
-  letterAvatarSmall: {
+  avatarPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  letterAvatarTextSmall: {
-    color: colors.primary,
+  avatarText: {
+    color: '#fff',
     fontSize: 24,
     fontWeight: '900',
   },
-  clientInfo: {
+  infoWrapper: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 16,
   },
   clientName: {
     color: colors.text,
     fontSize: 18,
     fontWeight: '800',
+    marginBottom: 4,
   },
-  clientLocation: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    marginTop: 2,
-    fontStyle: 'italic',
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  clientBalanceStatus: {
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaText: {
     color: colors.textSecondary,
     fontSize: 12,
-    marginTop: 2,
+    fontWeight: '600',
+    marginLeft: 4,
   },
-  clientBalance: {
-    fontSize: 18,
-    fontWeight: '900',
+  metaDivider: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    marginHorizontal: 8,
   },
-  clientRight: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
+  actionWrapper: {
+    marginLeft: 8,
   },
   empty: {
-    marginTop: 100,
+    marginTop: 60,
     alignItems: 'center',
+    padding: 40,
   },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: 16,
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 20,
   },
-  fabContainer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  fab: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 24,
-    paddingBottom: 40,
-    borderWidth: 1,
-    borderColor: colors.border,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
+  emptyText: {
     color: colors.text,
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '900',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    color: colors.textSecondary,
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

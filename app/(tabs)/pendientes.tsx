@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { DollarSign, TrendingUp, Users, X } from 'lucide-react-native';
+import { CreditCard, DollarSign, MessageCircle, TrendingUp, Users, X } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { FlatList, Image, Modal, Platform, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 // @ts-ignore - No types available for this package
@@ -12,12 +12,15 @@ import { StitchPressable } from '../../components/StitchPressable';
 import { useTheme } from '../../context/ThemeContext';
 import { useNeniStore } from '../../hooks/useNeniStore';
 import { Client } from '../../hooks/useNeniStore.types';
+import { generatePaymentMessage, sendWhatsAppMessage } from '../../utils/whatsapp';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PendientesScreen() {
-    const { clients, addTransaction } = useNeniStore();
+    const { clients, addTransaction, whatsappPaymentTemplate } = useNeniStore();
+    const { businessName } = useAuth();
     const { colors, isDark } = useTheme();
     const router = useRouter();
-    const styles = getStyles(colors);
+    const styles = getStyles(colors, isDark);
 
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -62,6 +65,25 @@ export default function PendientesScreen() {
         }
     };
 
+    const handleWhatsAppReminder = (client: Client) => {
+        if (!client.phone) return;
+        const message = generatePaymentMessage(
+            client.name,
+            0, // No payment amount for reminder
+            "Recordatorio de pago pendiente",
+            client.totalBalance,
+            whatsappPaymentTemplate,
+            businessName
+        );
+        sendWhatsAppMessage(client.phone, message);
+    };
+
+    const getDebtLevelColor = (balance: number) => {
+        if (balance > stats.average * 1.5) return colors.danger;
+        if (balance > stats.average * 0.8) return colors.warning;
+        return colors.success;
+    };
+
     const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
     return (
@@ -87,8 +109,8 @@ export default function PendientesScreen() {
                                 <View style={styles.clientInfoModal}>
                                     <Text style={styles.clientLabel}>Cliente</Text>
                                     <Text style={styles.clientNameModal}>{selectedClient.name}</Text>
-                                    <Text style={styles.clientDebt}>
-                                        Saldo: ${selectedClient.totalBalance.toLocaleString()}
+                                    <Text style={[styles.clientDebt, { color: colors.danger }]}>
+                                        Saldo Total: ${selectedClient.totalBalance.toLocaleString()}
                                     </Text>
                                 </View>
 
@@ -128,169 +150,119 @@ export default function PendientesScreen() {
                 </View>
             </Modal>
 
-            {/* Header with Stats */}
+            {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.title}>Cuentas Pendientes</Text>
-                <Text style={styles.subtitle}>Gestión de cobros</Text>
+                <View>
+                    <Text style={styles.title}>Cobranza</Text>
+                    <Text style={styles.subtitle}>Gestiona tus ingresos pendientes</Text>
+                </View>
             </View>
 
-            {/* Statistics Cards */}
+            {/* Statistics Dashboard */}
             <View style={styles.statsContainer}>
-                <View style={styles.statCard}>
-                    <View style={[styles.statIcon, { backgroundColor: 'rgba(239, 44, 44, 0.1)' }]}>
-                        <DollarSign color={colors.danger} size={20} />
+                <LinearGradient
+                    colors={colors.gradientPrimary as any}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.mainStatCard}
+                >
+                    <View style={styles.mainStatHeader}>
+                        <DollarSign color="rgba(255,255,255,0.8)" size={16} />
+                        <Text style={styles.mainStatLabel}>COBRO TOTAL PENDIENTE</Text>
                     </View>
-                    <Text
-                        style={styles.statValue}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                    >
+                    <Text style={styles.mainStatValue}>
                         ${stats.total.toLocaleString()}
                     </Text>
-                    <Text style={styles.statLabel}>Total Pendiente</Text>
-                </View>
-
-                <View style={styles.statCard}>
-                    <View style={[styles.statIcon, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.1)' }]}>
-                        <Users color={colors.primary} size={20} />
+                    <View style={styles.mainStatFooter}>
+                        <Users color="rgba(255,255,255,0.8)" size={14} />
+                        <Text style={styles.mainStatSublabel}>{stats.count} Clientes deudores</Text>
                     </View>
-                    <Text style={styles.statValue}>{stats.count}</Text>
-                    <Text style={styles.statLabel}>Clientes</Text>
-                </View>
-
-                <View style={styles.statCard}>
-                    <View style={[styles.statIcon, { backgroundColor: 'rgba(244, 123, 37, 0.1)' }]}>
-                        <TrendingUp color={colors.secondary} size={20} />
-                    </View>
-                    <Text
-                        style={styles.statValue}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                    >
-                        ${stats.average.toFixed(0)}
-                    </Text>
-                    <Text style={styles.statLabel}>Promedio</Text>
-                </View>
+                </LinearGradient>
             </View>
 
-            {/* Sort Toggle */}
+            {/* Sort Controls */}
             <View style={styles.sortContainer}>
                 <StitchPressable
                     style={StyleSheet.flatten([
-                        styles.sortButton,
-                        sortBy === 'amount' ? { backgroundColor: colors.primary, borderColor: colors.primary } : { backgroundColor: 'transparent' }
+                        styles.sortBadge,
+                        sortBy === 'amount' && { backgroundColor: isDark ? colors.primary : colors.primary, borderColor: colors.primary }
                     ])}
                     onPress={() => setSortBy('amount')}
                 >
-                    <Text style={[styles.sortText, sortBy === 'amount' && { color: '#fff' }]}>
-                        Mayor Deuda
-                    </Text>
+                    <Text style={[styles.sortText, sortBy === 'amount' && { color: '#fff' }]}>Mayor Deuda</Text>
                 </StitchPressable>
                 <StitchPressable
                     style={StyleSheet.flatten([
-                        styles.sortButton,
-                        sortBy === 'name' ? { backgroundColor: colors.primary, borderColor: colors.primary } : { backgroundColor: 'transparent' }
+                        styles.sortBadge,
+                        sortBy === 'name' && { backgroundColor: isDark ? colors.primary : colors.primary, borderColor: colors.primary }
                     ])}
                     onPress={() => setSortBy('name')}
                 >
-                    <Text style={[styles.sortText, sortBy === 'name' && { color: '#fff' }]}>
-                        Alfabético
-                    </Text>
+                    <Text style={[styles.sortText, sortBy === 'name' && { color: '#fff' }]}>Alfabético</Text>
                 </StitchPressable>
             </View>
 
-            {/* Pending Clients List */}
+            {/* List */}
             <FlatList
                 data={pendingClients}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.list}
                 ListEmptyComponent={
                     <View style={styles.empty}>
-                        <Text style={styles.emptyText}>¡Excelente!</Text>
-                        <Text style={styles.emptySubtext}>No hay cuentas pendientes</Text>
+                        <View style={styles.emptyIconContainer}>
+                            <TrendingUp color={colors.success} size={48} />
+                        </View>
+                        <Text style={styles.emptyText}>¡Todo al día!</Text>
+                        <Text style={styles.emptySubtext}>No tienes cuentas por cobrar pendientes.</Text>
                     </View>
                 }
                 renderItem={({ item }) => (
-                    <StitchPressable onPress={() => router.push(`/cliente/${item.id}`)}>
-                        <StitchCard style={styles.clientCard}>
-                            <LinearGradient
-                                colors={colors.gradientPrimary as any}
-                                style={{
-                                    width: 56,
-                                    height: 56,
-                                    borderRadius: 28,
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    marginRight: 12,
-                                }}
-                            >
-                                <View style={styles.clientAvatar}>
+                    <StitchPressable onPress={() => router.push(`/cliente/${item.id}`)} scaleTo={0.98}>
+                        <StitchCard style={styles.proCard}>
+                            <View style={styles.cardIndicator(getDebtLevelColor(item.totalBalance))} />
+
+                            <View style={styles.cardHeader}>
+                                <View style={styles.avatarContainer}>
                                     {item.image ? (
-                                        <Image source={{ uri: item.image }} style={styles.avatarImage} />
+                                        <Image source={{ uri: item.image }} style={styles.avatarImg} />
                                     ) : (
-                                        <View style={styles.letterAvatarSmall}>
-                                            <Text style={styles.letterAvatarTextSmall}>{getInitial(item.name)}</Text>
-                                        </View>
+                                        <LinearGradient
+                                            colors={colors.gradientSecondary as any}
+                                            style={styles.avatarLetter}
+                                        >
+                                            <Text style={styles.avatarText}>{getInitial(item.name)}</Text>
+                                        </LinearGradient>
                                     )}
                                 </View>
-                            </LinearGradient>
-                            <View style={styles.clientInfoCard}>
-                                <Text style={styles.clientName}>{item.name}</Text>
-                                <Text style={styles.clientTransactions}>
-                                    {(item.transactions || []).length} transacciones
-                                </Text>
-                            </View>
-                            <View style={styles.amountContainer}>
-                                {Platform.OS === 'web' ? (
-                                    <Text
-                                        style={[
-                                            styles.clientBalance,
-                                            { color: item.totalBalance > stats.average * 1.5 ? colors.danger : colors.primary }
-                                        ]}
-                                        numberOfLines={1}
-                                        adjustsFontSizeToFit
-                                    >
+                                <View style={styles.clientDetail}>
+                                    <Text style={styles.clientName} numberOfLines={1}>{item.name}</Text>
+                                    <Text style={styles.clientMeta}>{item.transactions?.length || 0} transacciones</Text>
+                                </View>
+                                <View style={styles.balanceContainer}>
+                                    <Text style={[styles.balanceValue, { color: getDebtLevelColor(item.totalBalance) }]}>
                                         ${item.totalBalance.toLocaleString()}
                                     </Text>
-                                ) : (
-                                    <MaskedView
-                                        style={styles.maskedViewSmall}
-                                        maskElement={
-                                            <Text
-                                                style={styles.clientBalance}
-                                                numberOfLines={1}
-                                                adjustsFontSizeToFit
-                                            >
-                                                ${item.totalBalance.toLocaleString()}
-                                            </Text>
-                                        }
-                                    >
-                                        <LinearGradient
-                                            colors={(item.totalBalance > stats.average * 1.5
-                                                ? [colors.danger || '#ef4444', colors.danger || '#ef4444']
-                                                : colors.gradientPrimary || ['#3B82F6', '#8B5CF6']) as [string, string, ...string[]]}
-                                            start={{ x: 0, y: 0.5 }}
-                                            end={{ x: 1, y: 0.5 }}
-                                            style={styles.gradientFill}
-                                        >
-                                            <Text
-                                                style={[styles.clientBalance, { opacity: 0 }]}
-                                                numberOfLines={1}
-                                                adjustsFontSizeToFit
-                                            >
-                                                ${item.totalBalance.toLocaleString()}
-                                            </Text>
-                                        </LinearGradient>
-                                    </MaskedView>
-                                )}
+                                </View>
+                            </View>
+
+                            <View style={styles.cardDivider} />
+
+                            <View style={styles.cardActions}>
                                 <StitchPressable
-                                    style={[styles.payButton, { backgroundColor: colors.success }]}
-                                    onPress={(e) => {
-                                        e.stopPropagation();
-                                        handleQuickPayment(item);
-                                    }}
+                                    style={[styles.actionBtn, { backgroundColor: isDark ? colors.cardSecondary : colors.gray100 }]}
+                                    onPress={() => handleQuickPayment(item)}
                                 >
-                                    <Text style={styles.payButtonText}>Cobrar</Text>
+                                    <CreditCard color={colors.primary} size={18} />
+                                    <Text style={[styles.actionBtnText, { color: colors.text }]}>Abonar</Text>
+                                </StitchPressable>
+
+                                <StitchPressable
+                                    style={[styles.actionBtn, { backgroundColor: colors.whatsapp }]}
+                                    onPress={() => handleWhatsAppReminder(item)}
+                                    disabled={!item.phone}
+                                >
+                                    <MessageCircle color="#fff" size={18} />
+                                    <Text style={[styles.actionBtnText, { color: '#fff' }]}>WhatsApp</Text>
                                 </StitchPressable>
                             </View>
                         </StitchCard>
@@ -301,234 +273,286 @@ export default function PendientesScreen() {
     );
 }
 
-const getStyles = (colors: any) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.background,
-    },
-    header: {
-        padding: 20,
-        paddingBottom: 16,
-    },
-    title: {
-        color: colors.text,
-        fontSize: 28,
-        fontWeight: '900',
-    },
-    subtitle: {
-        color: colors.textSecondary,
-        fontSize: 14,
-        marginTop: 4,
-    },
-    statsContainer: {
-        flexDirection: 'row',
-        paddingHorizontal: 20,
-        gap: 12,
-        marginBottom: 20,
-    },
-    statCard: {
-        flex: 1,
-        backgroundColor: colors.card,
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        alignItems: 'center',
-    },
-    statIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 12,
-    },
-    statValue: {
-        color: colors.text,
-        fontSize: 20,
-        fontWeight: '900',
-        marginBottom: 4,
-    },
-    statLabel: {
-        color: colors.textSecondary,
-        fontSize: 11,
-        textAlign: 'center',
-    },
-    sortContainer: {
-        flexDirection: 'row',
-        paddingHorizontal: 20,
-        gap: 12,
-        marginBottom: 16,
-    },
-    sortButton: {
-        flex: 1,
-        backgroundColor: 'transparent',
-        paddingVertical: 12,
-        borderRadius: 12,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    sortText: {
-        color: colors.textSecondary,
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    list: {
-        padding: 20,
-        paddingTop: 0,
-    },
-    empty: {
-        marginTop: 100,
-        alignItems: 'center',
-    },
-    emptyText: {
-        color: colors.text,
-        fontSize: 24,
-        fontWeight: '800',
-        marginBottom: 8,
-    },
-    emptySubtext: {
-        color: colors.textSecondary,
-        fontSize: 16,
-    },
-    clientCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    clientAvatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-    },
-    avatarImage: {
-        width: '100%',
-        height: '100%',
-    },
-    letterAvatarSmall: {
-        width: '100%',
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    letterAvatarTextSmall: {
-        color: '#fff',
-        fontSize: 20,
-        fontWeight: '900',
-    },
-    clientInfoCard: {
-        flex: 1,
-    },
-    clientName: {
-        color: colors.text,
-        fontSize: 16,
-        fontWeight: '700',
-        marginBottom: 4,
-    },
-    clientTransactions: {
-        color: colors.textSecondary,
-        fontSize: 12,
-    },
-    amountContainer: {
-        alignItems: 'flex-end',
-    },
-    clientBalance: {
-        fontSize: 20,
-        fontWeight: '900',
-        marginBottom: 4,
-        textAlign: 'right',
-    },
-    maskedViewSmall: {
-        height: 28,
-        width: 100,
-        justifyContent: 'center',
-        alignItems: 'flex-end',
-    },
-    gradientFill: {
-        flex: 1,
-    },
-    payButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: 8,
-    },
-    payButtonText: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: '700',
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: colors.background,
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        padding: 24,
-        paddingBottom: 40,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    modalTitle: {
-        color: colors.text,
-        fontSize: 20,
-        fontWeight: '800',
-    },
-    clientInfoModal: {
-        backgroundColor: colors.card,
-        padding: 16,
-        borderRadius: 16,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    clientLabel: {
-        color: colors.textSecondary,
-        fontSize: 12,
-        fontWeight: '600',
-        marginBottom: 8,
-    },
-    clientNameModal: {
-        color: colors.text,
-        fontSize: 18,
-        fontWeight: '800',
-        marginBottom: 4,
-    },
-    clientDebt: {
-        color: colors.danger,
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    quickAmounts: {
-        flexDirection: 'row',
-        gap: 12,
-        marginTop: 12,
-        marginBottom: 12,
-    },
-    quickAmountButton: {
-        flex: 1,
-        backgroundColor: colors.card,
-        paddingVertical: 12,
-        borderRadius: 12,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    quickAmountText: {
-        color: colors.text,
-        fontSize: 14,
-        fontWeight: '700',
-    },
-});
+const getStyles = (colors: any, isDark: boolean) => {
+    const styles = StyleSheet.create({
+        container: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        header: {
+            padding: 24,
+            paddingBottom: 16,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+        },
+        title: {
+            color: colors.text,
+            fontSize: 32,
+            fontWeight: '900',
+            letterSpacing: -0.5,
+        },
+        subtitle: {
+            color: colors.textSecondary,
+            fontSize: 14,
+            marginTop: 2,
+        },
+        statsContainer: {
+            paddingHorizontal: 24,
+            marginBottom: 20,
+        },
+        mainStatCard: {
+            borderRadius: 24,
+            padding: 24,
+            elevation: 10,
+            shadowColor: colors.primary,
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.3,
+            shadowRadius: 20,
+        },
+        mainStatHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+        },
+        mainStatLabel: {
+            color: 'rgba(255,255,255,0.7)',
+            fontSize: 10,
+            fontWeight: '800',
+            letterSpacing: 1,
+            marginLeft: 6,
+        },
+        mainStatValue: {
+            color: '#fff',
+            fontSize: 36,
+            fontWeight: '900',
+            marginVertical: 12,
+        },
+        mainStatFooter: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: 'rgba(255,255,255,0.15)',
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 12,
+            alignSelf: 'flex-start',
+        },
+        mainStatSublabel: {
+            color: '#fff',
+            fontSize: 12,
+            fontWeight: '600',
+            marginLeft: 6,
+        },
+        sortContainer: {
+            flexDirection: 'row',
+            paddingHorizontal: 24,
+            marginBottom: 16,
+        },
+        sortBadge: {
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.card,
+            marginRight: 8,
+        },
+        sortText: {
+            fontSize: 13,
+            fontWeight: '700',
+            color: colors.textSecondary,
+        },
+        list: {
+            paddingHorizontal: 24,
+            paddingBottom: 40,
+        },
+        proCard: {
+            marginBottom: 16,
+            padding: 0,
+            overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: colors.border,
+        },
+        cardHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: 16,
+            paddingLeft: 20,
+        },
+        avatarContainer: {
+            width: 48,
+            height: 48,
+            borderRadius: 16,
+            overflow: 'hidden',
+        },
+        avatarImg: {
+            width: '100%',
+            height: '100%',
+        },
+        avatarLetter: {
+            width: '100%',
+            height: '100%',
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        avatarText: {
+            color: '#fff',
+            fontSize: 20,
+            fontWeight: '900',
+        },
+        clientDetail: {
+            flex: 1,
+            marginLeft: 12,
+        },
+        clientName: {
+            color: colors.text,
+            fontSize: 17,
+            fontWeight: '800',
+        },
+        clientMeta: {
+            color: colors.textSecondary,
+            fontSize: 12,
+            marginTop: 2,
+        },
+        balanceContainer: {
+            alignItems: 'flex-end',
+        },
+        balanceValue: {
+            fontSize: 20,
+            fontWeight: '900',
+        },
+        cardDivider: {
+            height: 1,
+            backgroundColor: colors.border,
+            marginHorizontal: 16,
+        },
+        cardActions: {
+            flexDirection: 'row',
+            padding: 12,
+            paddingHorizontal: 16,
+        },
+        actionBtn: {
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 10,
+            borderRadius: 12,
+            marginRight: 12,
+        },
+        actionBtnText: {
+            fontSize: 13,
+            fontWeight: '800',
+            marginLeft: 8,
+        },
+        empty: {
+            marginTop: 60,
+            alignItems: 'center',
+            padding: 40,
+        },
+        emptyIconContainer: {
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+        },
+        emptyText: {
+            color: colors.text,
+            fontSize: 24,
+            fontWeight: '900',
+            marginBottom: 8,
+        },
+        emptySubtext: {
+            color: colors.textSecondary,
+            fontSize: 16,
+            textAlign: 'center',
+        },
+        modalOverlay: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            justifyContent: 'flex-end',
+        },
+        modalContent: {
+            backgroundColor: colors.background,
+            borderTopLeftRadius: 36,
+            borderTopRightRadius: 36,
+            padding: 24,
+            paddingBottom: 40,
+            borderWidth: 1,
+            borderColor: colors.border,
+        },
+        modalHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 24,
+        },
+        modalTitle: {
+            color: colors.text,
+            fontSize: 22,
+            fontWeight: '900',
+        },
+        clientInfoModal: {
+            backgroundColor: isDark ? colors.cardSecondary : (colors.gray100 || colors.border || '#f1f5f9'),
+            padding: 20,
+            borderRadius: 20,
+            marginBottom: 24,
+            borderWidth: 1,
+            borderColor: colors.border,
+        },
+        clientLabel: {
+            color: colors.textSecondary,
+            fontSize: 12,
+            fontWeight: '800',
+            letterSpacing: 0.5,
+            marginBottom: 4,
+        },
+        clientNameModal: {
+            color: colors.text,
+            fontSize: 20,
+            fontWeight: '900',
+            marginBottom: 4,
+        },
+        clientDebt: {
+            fontSize: 15,
+            fontWeight: '700',
+        },
+        quickAmounts: {
+            flexDirection: 'row',
+            marginTop: 16,
+            marginBottom: 16,
+        },
+        quickAmountButton: {
+            flex: 1,
+            backgroundColor: colors.card,
+            paddingVertical: 14,
+            borderRadius: 16,
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: colors.border,
+            marginRight: 12,
+        },
+        quickAmountText: {
+            color: colors.text,
+            fontSize: 15,
+            fontWeight: '800',
+        },
+    });
+
+    return {
+        ...styles,
+        cardIndicator: (color: string) => ({
+            width: 4,
+            height: '100%Custom' as any, // Cast to any to bypass DimensionValue strict check if needed, but '100%' is usually fine in RN. The lint error suggests a mismatch.
+            backgroundColor: color,
+            position: 'absolute' as const,
+            left: 0,
+            top: 0,
+        } as const),
+    };
+};
+
+
+
