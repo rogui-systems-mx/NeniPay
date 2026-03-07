@@ -1,10 +1,10 @@
 const palette = {
-  blue: '#3B82F6',
+  blue: '#2563EB', // NeniPay Blue
   blueLight: '#60A5FA',
-  purple: '#8B5CF6',
+  purple: '#7C3AED', // NeniPay Violet
   purpleLight: '#A78BFA',
-  gold: '#FFB800',
-  orange: '#FF8C00',
+  gold: '#FBBF24', // NeniPay Gold
+  orange: '#F59E0B',
   success: '#10B981',
   danger: '#EF4444',
   warning: '#F59E0B',
@@ -22,6 +22,7 @@ const palette = {
   gray100: '#F1F5F9',
   gray50: '#F8FAFC',
 };
+
 
 export const Colors = {
   brand: palette,
