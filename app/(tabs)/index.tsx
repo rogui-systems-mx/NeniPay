@@ -37,11 +37,18 @@ export default function ClientesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Area */}
+      {/* Header Area with Brand Logo */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Clientes</Text>
-          <Text style={styles.subtitle}>Gestiona tu red de contactos</Text>
+        <View style={styles.headerTitleRow}>
+          <Image
+            source={require('../../assets/images/logo.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <View style={styles.headerTextWrapper}>
+            <Text style={styles.title}>Clientes</Text>
+            <Text style={styles.subtitle}>Tu red de contactos</Text>
+          </View>
         </View>
         <StitchPressable
           onPress={() => router.push('/cliente/nuevo')}
@@ -116,7 +123,7 @@ export default function ClientesScreen() {
                     <View style={styles.metaDivider} />
                     <View style={styles.metaItem}>
                       <Calendar color={colors.textSecondary} size={12} />
-                      <Text style={styles.metaText}>{formatDate(item.createdAt)}</Text>
+                      <Text style={styles.metaText}>{formatDate(item.memberSince)}</Text>
                     </View>
                   </View>
                 </View>
@@ -145,16 +152,29 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerLogo: {
+    width: 44,
+    height: 44,
+    marginRight: 12,
+  },
+  headerTextWrapper: {
+    justifyContent: 'center',
+  },
   title: {
     color: colors.text,
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
   subtitle: {
     color: colors.textSecondary,
-    fontSize: 14,
-    marginTop: 2,
+    fontSize: 13,
+    marginTop: -2,
   },
   addBtn: {
     width: 48,

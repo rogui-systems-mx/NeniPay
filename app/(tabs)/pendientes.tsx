@@ -150,13 +150,27 @@ export default function PendientesScreen() {
                 </View>
             </Modal>
 
-            {/* Header */}
+            {/* Header Area with Brand Logo */}
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.title}>Cobranza</Text>
-                    <Text style={styles.subtitle}>Gestiona tus ingresos pendientes</Text>
+                <View style={styles.headerTitleRow}>
+                    <Image
+                        source={require('../../assets/images/logo.png')}
+                        style={styles.headerLogo}
+                        resizeMode="contain"
+                    />
+                    <View style={styles.headerTextWrapper}>
+                        <Text style={styles.title}>Pendientes</Text>
+                        <Text style={styles.subtitle}>Gestión de cobranza</Text>
+                    </View>
                 </View>
+                <StitchPressable
+                    onPress={() => setSortBy(sortBy === 'amount' ? 'name' : 'amount')}
+                    style={styles.sortBadge}
+                >
+                    <TrendingUp color={sortBy === 'amount' ? colors.primary : colors.textSecondary} size={18} />
+                </StitchPressable>
             </View>
+
 
             {/* Statistics Dashboard */}
             <View style={styles.statsContainer}>
@@ -249,9 +263,10 @@ export default function PendientesScreen() {
 
                             <View style={styles.cardActions}>
                                 <StitchPressable
-                                    style={[styles.actionBtn, { backgroundColor: isDark ? colors.cardSecondary : colors.gray100 }]}
+                                    style={[styles.actionBtn, { backgroundColor: colors.cardSecondary }]}
                                     onPress={() => handleQuickPayment(item)}
                                 >
+
                                     <CreditCard color={colors.primary} size={18} />
                                     <Text style={[styles.actionBtnText, { color: colors.text }]}>Abonar</Text>
                                 </StitchPressable>
@@ -286,17 +301,31 @@ const getStyles = (colors: any, isDark: boolean) => {
             justifyContent: 'space-between',
             alignItems: 'center',
         },
+        headerTitleRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            flex: 1,
+        },
+        headerLogo: {
+            width: 44,
+            height: 44,
+            marginRight: 12,
+        },
+        headerTextWrapper: {
+            justifyContent: 'center',
+        },
         title: {
             color: colors.text,
-            fontSize: 32,
+            fontSize: 26,
             fontWeight: '900',
             letterSpacing: -0.5,
         },
         subtitle: {
             color: colors.textSecondary,
-            fontSize: 14,
-            marginTop: 2,
+            fontSize: 13,
+            marginTop: -2,
         },
+
         statsContainer: {
             paddingHorizontal: 24,
             marginBottom: 20,
