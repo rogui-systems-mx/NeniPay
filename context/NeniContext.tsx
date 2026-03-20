@@ -6,6 +6,8 @@ import { db } from '../utils/firebase';
 import { getFromStorage, saveToStorage } from '../utils/storage';
 import { getProductsFromStorage, saveProductsToStorage } from '../utils/storageProducts';
 import { DEFAULT_PAYMENT_TEMPLATE, DEFAULT_SALE_TEMPLATE, generatePaymentMessage, generateSaleMessage, sendWhatsAppMessage } from '../utils/whatsapp';
+import { requestNotificationPermissions, cancelAllNotifications, syncClientNotifications } from '../utils/notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 
 export interface NeniContextType {
@@ -13,7 +15,7 @@ export interface NeniContextType {
     products: Product[];
     loading: boolean;
     // Client actions
-    addClient: (name: string, phone?: string, location?: string) => void;
+    addClient: (name: string, phone?: string, location?: string, image?: string) => string;
     updateClient: (id: string, name: string, phone?: string, location?: string, image?: string) => void;
     deleteClient: (clientId: string) => void;
     getClientById: (id: string) => Client | undefined;
@@ -31,6 +33,8 @@ export interface NeniContextType {
     updateProduct: (productId: string, name: string, price: number, stock?: number, description?: string, category?: string, image?: string) => void;
     deleteProduct: (productId: string) => void;
     clearAllData: () => Promise<void>;
+    notificationsEnabled: boolean;
+    toggleNotifications: (enabled: boolean) => Promise<boolean>;
 }
 
 const NeniContext = createContext<NeniContextType | undefined>(undefined);
@@ -41,6 +45,7 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [products, setProducts] = useState<Product[]>([]);
     const [whatsappSaleTemplate, setWhatsappSaleTemplate] = useState(DEFAULT_SALE_TEMPLATE);
     const [whatsappPaymentTemplate, setWhatsappPaymentTemplate] = useState(DEFAULT_PAYMENT_TEMPLATE);
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [loading, setLoading] = useState(true);
 
     // Sync logic (Cloud + Local fallback)
@@ -61,6 +66,7 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         setProducts(data.products || []);
                         if (data.whatsappSaleTemplate) setWhatsappSaleTemplate(data.whatsappSaleTemplate);
                         if (data.whatsappPaymentTemplate) setWhatsappPaymentTemplate(data.whatsappPaymentTemplate);
+                        if (data.notificationsEnabled !== undefined) setNotificationsEnabled(data.notificationsEnabled);
                     } else {
                         // First time login - Check if we should migrate local data
                         handleInitialMigration(user.uid);
@@ -69,30 +75,35 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 });
             } else {
                 // LOCAL MODE: Use AsyncStorage
-                const [clientData, productData] = await Promise.all([
+                const [clientData, productData, notifData] = await Promise.all([
                     getFromStorage(),
-                    getProductsFromStorage()
+                    getProductsFromStorage(),
+                    AsyncStorage.getItem('@nenipay_notifications')
                 ]);
                 setClients((clientData?.clients || []).map((c: any) => ({ ...c, transactions: c.transactions || [] })));
                 setProducts(productData?.products || []);
+                setNotificationsEnabled(notifData === '1');
                 setLoading(false);
             }
         };
 
         const handleInitialMigration = async (userId: string) => {
-            const [clientData, productData] = await Promise.all([
+            const [clientData, productData, notifData] = await Promise.all([
                 getFromStorage(),
-                getProductsFromStorage()
+                getProductsFromStorage(),
+                AsyncStorage.getItem('@nenipay_notifications')
             ]);
 
             const localClients = clientData?.clients || [];
             const localProducts = productData?.products || [];
+            const localNotifications = notifData === '1';
 
-            if (localClients.length > 0 || localProducts.length > 0) {
+            if (localClients.length > 0 || localProducts.length > 0 || localNotifications) {
                 // Auto-migrate if cloud is empty but local has data
                 await setDoc(doc(db, 'users', userId), {
                     clients: sanitizeClientsData(localClients),
                     products: sanitizeProductsData(localProducts),
+                    notificationsEnabled: localNotifications,
                     updatedAt: new Date().toISOString()
                 });
             } else {
@@ -100,6 +111,7 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 await setDoc(doc(db, 'users', userId), {
                     clients: [],
                     products: [],
+                    notificationsEnabled: false,
                     updatedAt: new Date().toISOString()
                 });
             }
@@ -121,6 +133,16 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
             saveProductsToStorage({ products });
         }
     }, [products, loading, user]);
+
+    // Smart Notifications Sync
+    useEffect(() => {
+        if (!loading && notificationsEnabled && clients.length > 0) {
+            const timeoutId = setTimeout(() => {
+                syncClientNotifications(clients, true).catch(e => console.error('Error syncing local notifications:', e));
+            }, 2000);
+            return () => clearTimeout(timeoutId);
+        }
+    }, [clients, notificationsEnabled, loading]);
 
     // Helper to persist changes
     const sanitizeClientsData = (clientsList: Client[]) => {
@@ -169,12 +191,13 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     // --- Client Implementations ---
-    const addClient = (name: string, phone?: string, location?: string) => {
+    const addClient = (name: string, phone?: string, location?: string, image?: string): string => {
         const newClient: Client = {
             id: Math.random().toString(36).substr(2, 9),
             name,
             phone,
             location,
+            image,
             memberSince: new Date().toLocaleDateString(),
             transactions: [],
             totalBalance: 0,
@@ -182,6 +205,7 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const updated = [newClient, ...clients];
         setClients(updated);
         persistChange(updated, products);
+        return newClient.id;
     };
 
     const updateClient = (id: string, name: string, phone?: string, location?: string, image?: string) => {
@@ -390,12 +414,37 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             await Promise.all([
                 saveToStorage({ clients: [] }),
-                saveProductsToStorage({ products: [] })
+                saveProductsToStorage({ products: [] }),
+                AsyncStorage.removeItem('@nenipay_notifications')
             ]);
             setClients([]);
             setProducts([]);
+            setNotificationsEnabled(false);
+            await cancelAllNotifications();
         } catch (error) {
             console.error('Error clearing data:', error);
+        }
+    };
+
+    const toggleNotifications = async (enabled: boolean): Promise<boolean> => {
+        try {
+            if (enabled) {
+                const hasPermission = await requestNotificationPermissions();
+                if (!hasPermission) return false;
+                await syncClientNotifications(clients, true);
+            } else {
+                await cancelAllNotifications();
+            }
+            setNotificationsEnabled(enabled);
+            
+            if (user) {
+                await setDoc(doc(db, 'users', user.uid), { notificationsEnabled: enabled }, { merge: true });
+            }
+            await AsyncStorage.setItem('@nenipay_notifications', enabled ? '1' : '0');
+            return true;
+        } catch (error) {
+            console.error('Error toggling notifications:', error);
+            return false;
         }
     };
 
@@ -436,8 +485,10 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setWhatsappSaleTemplate(sale);
             setWhatsappPaymentTemplate(payment);
             persistChange(clients, products, sale, payment);
-        }
-    }), [clients, products, loading, whatsappSaleTemplate, whatsappPaymentTemplate]);
+        },
+        notificationsEnabled,
+        toggleNotifications,
+    }), [clients, products, loading, whatsappSaleTemplate, whatsappPaymentTemplate, notificationsEnabled]);
 
     return <NeniContext.Provider value={value}>{children}</NeniContext.Provider>;
 };

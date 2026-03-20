@@ -2,6 +2,11 @@
   "expo": {
     "name": "NeniPay",
     "slug": "nenipay",
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

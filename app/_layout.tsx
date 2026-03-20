@@ -1,10 +1,24 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import {
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold
+} from '@expo-google-fonts/manrope';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { LogBox } from 'react-native';
 import 'react-native-reanimated';
+
+// Ignore specific warnings related to Expo Go and Push Notifications
+// since we only use Local Notifications.
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications'
+]);
 
 import { AuthProvider } from '../context/AuthContext';
 import { NeniProvider } from '../context/NeniContext';
@@ -26,6 +40,11 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
     ...FontAwesome.font,
   });
 
@@ -85,6 +104,8 @@ function RootLayoutNav({ loaded }: { loaded: boolean }) {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         <Stack.Screen name="cliente/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="cliente/nuevo" options={{ headerShown: false }} />
+        <Stack.Screen name="producto/nuevo" options={{ headerShown: false }} />
       </Stack>
     </ThemeProvider>
   );

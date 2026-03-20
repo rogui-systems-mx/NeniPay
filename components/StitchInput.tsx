@@ -34,10 +34,13 @@ const getStyles = (colors: any) => StyleSheet.create({
     },
     label: {
         color: colors.text,
-        fontSize: 14,
-        fontWeight: '700',
+        fontSize: 13,
+        fontFamily: 'Manrope_700Bold',
         marginBottom: 8,
         marginLeft: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 1.2,
+        opacity: 0.6,
     },
     input: {
         backgroundColor: colors.card,
@@ -45,7 +48,8 @@ const getStyles = (colors: any) => StyleSheet.create({
         padding: 16,
         color: colors.text,
         fontSize: 16,
-        borderWidth: 1,
+        fontFamily: 'Manrope_600SemiBold',
+        borderWidth: 1.2,
         borderColor: colors.border,
     },
 });

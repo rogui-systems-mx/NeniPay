@@ -39,7 +39,7 @@ export const ActionCard: React.FC<Props> = ({ title, subtitle, icon: Icon, varia
 
     const isSale = variant === 'sale';
     const primaryColor = colors.primary || '#3B82F6';
-    const secondaryColor = colors.gold || '#FFB800';
+    const secondaryColor = colors.warning || '#FFB800';
     const gradientColors = (isSale ? [primaryColor, primaryColor + 'CC'] : [secondaryColor, secondaryColor + 'CC']) as [string, string, ...string[]];
 
     return (
@@ -93,13 +93,15 @@ const getStyles = (colors: any) => StyleSheet.create({
     subtitle: {
         color: 'rgba(255,255,255,0.7)',
         fontSize: 12,
-        fontWeight: '700',
+        fontFamily: 'Manrope_700Bold',
         textTransform: 'uppercase',
         marginBottom: 4,
+        letterSpacing: 1.5,
     },
     title: {
         color: '#fff',
-        fontSize: 22,
-        fontWeight: '900',
+        fontSize: 24,
+        fontFamily: 'Manrope_800ExtraBold',
+        letterSpacing: -0.5,
     },
 });

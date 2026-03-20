@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 // Custom safe import for GoogleSignin to prevent crash in Expo Go
 let GoogleSignin: any = null;
 try {
@@ -181,6 +182,18 @@ export default function AuthScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* Background Depth Effects */}
+            <View style={styles.bgGlowWrapper} pointerEvents="none">
+                <LinearGradient
+                    colors={[colors.bgGlow1, 'transparent']}
+                    style={[styles.glowSphere, { top: '5%', right: '-20%' }]}
+                />
+                <LinearGradient
+                    colors={[colors.bgGlow2, 'transparent']}
+                    style={[styles.glowSphere, { bottom: '10%', left: '-20%' }]}
+                />
+            </View>
+
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
@@ -391,8 +404,21 @@ const getStyles = (colors: any) => StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
+    bgGlowWrapper: {
+        ...StyleSheet.absoluteFillObject,
+        overflow: 'hidden',
+        zIndex: -1,
+    },
+    glowSphere: {
+        position: 'absolute',
+        width: 350,
+        height: 350,
+        borderRadius: 175,
+        opacity: 0.5,
+    },
     scrollContent: {
         padding: 32,
+        paddingTop: Platform.OS === 'android' ? 60 : 32, // More space for branding
         flexGrow: 1,
         justifyContent: 'center',
     },

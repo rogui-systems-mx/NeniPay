@@ -221,10 +221,13 @@ const getStyles = (colors: any) => StyleSheet.create({
     },
     label: {
         color: colors.text,
-        fontSize: 14,
-        fontWeight: '700',
+        fontSize: 13,
+        fontFamily: 'Manrope_700Bold',
         marginBottom: 8,
         marginLeft: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 1.2,
+        opacity: 0.6,
     },
     contactButton: {
         flexDirection: 'row',
@@ -235,7 +238,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     contactButtonText: {
         color: colors.primary,
         fontSize: 12,
-        fontWeight: '600',
+        fontFamily: 'Manrope_700Bold',
     },
     inputContainer: {
         flexDirection: 'row',
@@ -260,7 +263,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     dialCode: {
         color: colors.text,
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: 'Manrope_700Bold',
         marginRight: 4,
     },
     input: {
@@ -270,7 +273,8 @@ const getStyles = (colors: any) => StyleSheet.create({
         padding: 16,
         color: colors.text,
         fontSize: 16,
-        borderWidth: 1,
+        fontFamily: 'Manrope_600SemiBold',
+        borderWidth: 1.2,
         borderColor: colors.border,
     },
     modalOverlay: {
@@ -296,8 +300,9 @@ const getStyles = (colors: any) => StyleSheet.create({
     },
     modalTitle: {
         color: colors.text,
-        fontSize: 20,
-        fontWeight: '800',
+        fontSize: 24,
+        fontFamily: 'Manrope_800ExtraBold',
+        letterSpacing: -0.5,
     },
     searchContainer: {
         flexDirection: 'row',

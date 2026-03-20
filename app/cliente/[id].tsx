@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, CircleDollarSign, Edit2, FileText, MoreVertical, Plus, ShoppingCart, Trash2, X } from 'lucide-react-native';
+import { ChevronLeft, CircleDollarSign, Edit2, FileText, MoreVertical, Plus, ShoppingCart, Trash2, X, Wallet, MessageCircle } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 // @ts-ignore - No types available for this package
@@ -12,6 +12,7 @@ import { StitchButton } from '../../components/StitchButton';
 import { StitchInput } from '../../components/StitchInput';
 import { StitchPhoneInput } from '../../components/StitchPhoneInput';
 import { StitchPressable } from '../../components/StitchPressable';
+import { StitchCard } from '../../components/StitchCard';
 import { TimelineItem } from '../../components/TimelineItem';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -20,9 +21,11 @@ import { Transaction, TransactionItem, TransactionType } from '../../hooks/useNe
 import { useProductStore } from '../../hooks/useProductStore';
 import { uploadImage } from '../../utils/firebase';
 import { shareClientHistoryPDF } from '../../utils/pdf';
+import { sendWhatsAppMessage, generatePaymentMessage } from '../../utils/whatsapp';
+import { BlurView } from 'expo-blur';
 
 export default function ClienteDetailScreen() {
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, action, month, year } = useLocalSearchParams<{ id: string, action?: string, month?: string, year?: string }>();
     const router = useRouter();
     const { getClientById, addTransaction, updateTransaction, deleteTransaction, deleteClient, updateClient, getClientColor } = useNeniStore();
     const { products } = useProductStore();
@@ -44,8 +47,8 @@ export default function ClienteDetailScreen() {
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [showClientMenu, setShowClientMenu] = useState(false);
     const [showTransactionMenu, setShowTransactionMenu] = useState(false);
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-    const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(new Date().getMonth());
+    const [selectedYear, setSelectedYear] = useState(year ? parseInt(year) : new Date().getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(month ? parseInt(month) : new Date().getMonth());
     const [notifyViaWhatsApp, setNotifyViaWhatsApp] = useState(true);
     const [cart, setCart] = useState<{ [productId: string]: number }>({});
     const [editCart, setEditCart] = useState<{ [productId: string]: number }>({});
@@ -58,6 +61,11 @@ export default function ClienteDetailScreen() {
     const [newManualQuantity, setNewManualQuantity] = useState('1');
 
     const client = getClientById(id);
+
+    React.useEffect(() => {
+        if (action === 'sale') handleOpenModal('sale');
+        if (action === 'payment') handleOpenModal('payment');
+    }, [action]);
 
     const groupedTransactions = useMemo(() => {
         if (!client || !client.transactions) return {};
@@ -105,6 +113,17 @@ export default function ClienteDetailScreen() {
         );
     }
 
+    const { totalSales, totalPayments } = useMemo(() => {
+        if (!client) return { totalSales: 0, totalPayments: 0 };
+        const sales = client.transactions
+            .filter(t => t.type === 'sale')
+            .reduce((acc, t) => acc + t.amount, 0);
+        const payments = client.transactions
+            .filter(t => t.type === 'payment')
+            .reduce((acc, t) => acc + t.amount, 0);
+        return { totalSales: sales, totalPayments: payments };
+    }, [client]);
+
     const handleOpenModal = (type: TransactionType) => {
         setModalType(type);
         setAmount('');
@@ -132,13 +151,8 @@ export default function ClienteDetailScreen() {
             finalDesc = finalDesc ? `${finalDesc}, ${manualDesc}` : manualDesc;
         }
 
-        if (isEdit) {
-            setAmount(totalAmount.toString());
-            setDescription(finalDesc);
-        } else {
-            setAmount(totalAmount.toString());
-            setDescription(finalDesc);
-        }
+        setAmount(totalAmount.toString());
+        setDescription(finalDesc);
     };
 
     const handleSaveTransaction = async () => {
@@ -332,208 +346,416 @@ export default function ClienteDetailScreen() {
 
     const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
+    const handleWhatsAppManual = () => {
+        if (!client || !client.phone) return;
+        // Accessing store state through the context values or hook if available, 
+        // since useNeniStore.getState() is usually for pure zustand stores.
+        // If it's a context hook, we might need to expose it.
+        // For now, I'll use a hardcoded fallback or try to get it from the store if it's a store.
+        const message = generatePaymentMessage(
+            client.name, 0, "Expediente de cuenta",
+            client.totalBalance, "Hola {cliente}, te recordamos que tu saldo actual es de {saldo}. ¡Gracias!", businessName
+        );
+        sendWhatsAppMessage(client.phone, message);
+    };
+
     return (
         <SafeAreaView style={styles.container}>
+            {/* Background Depth Effects */}
+            <View style={styles.bgGlowWrapper} pointerEvents="none">
+                <View style={[styles.glowSphere, { top: '5%', right: '-20%', backgroundColor: colors.primary + '15' }]} />
+                <View style={[styles.glowSphere, { bottom: '10%', left: '-30%', backgroundColor: colors.secondary + '15' }]} />
+            </View>
+
+            {/* Header */}
+            <View style={styles.header}>
+                <StitchPressable onPress={() => router.back()} style={styles.backButton}>
+                    <ChevronLeft color={colors.text} size={24} />
+                </StitchPressable>
+                <View style={styles.headerTitleContainer}>
+                    <Text style={styles.headerSubtitle}>EXPEDIENTE</Text>
+                    <Text style={styles.headerTitle}>{client.name}</Text>
+                    {client.location && (
+                        <Text style={styles.headerLocation}>{client.location}</Text>
+                    )}
+                </View>
+                <StitchPressable style={styles.moreButton} onPress={() => setShowClientMenu(true)}>
+                    <MoreVertical color={colors.text} size={24} />
+                </StitchPressable>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <View style={styles.profileSection}>
+                    <StitchPressable onPress={handlePickImage} style={styles.avatarContainer}>
+                        <LinearGradient
+                            colors={colors.gradientPrimary as any}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.avatarGradient}
+                        >
+                            <View style={[
+                                styles.avatarImageContainer,
+                                !client.image && { backgroundColor: 'transparent' }
+                            ]}>
+                                {client.image ? (
+                                    <Image
+                                        source={{ uri: client.image }}
+                                        style={{ width: '100%', height: '100%' }}
+                                    />
+                                ) : (
+                                    <LinearGradient
+                                        colors={colors.gradientPrimary as any}
+                                        style={styles.letterAvatar}
+                                    >
+                                        <Text style={styles.letterAvatarText}>{getInitial(client.name)}</Text>
+                                    </LinearGradient>
+                                )}
+                            </View>
+                            <View style={styles.editImageIcon}>
+                                <Plus size={14} color="#fff" />
+                            </View>
+                        </LinearGradient>
+                    </StitchPressable>
+                </View>
+
+                <View style={styles.balanceContainer}>
+                    <Text style={styles.balanceLabel}>SALDO PENDIENTE</Text>
+                    <View style={styles.balanceWrapper}>
+                        {Platform.OS === 'web' ? (
+                            <Text
+                                style={[styles.balanceAmount, { color: client.totalBalance > 0 ? (colors.primary || '#3B82F6') : (colors.success || '#10b981') }]}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                            >
+                                ${(client.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </Text>
+                        ) : (
+                            <MaskedView
+                                style={styles.maskedView}
+                                maskElement={
+                                    <Text
+                                        style={styles.balanceAmount}
+                                        numberOfLines={1}
+                                        adjustsFontSizeToFit
+                                    >
+                                        ${(client.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </Text>
+                                }
+                            >
+                                <LinearGradient
+                                    colors={colors.gradientPrimary as any}
+                                    start={{ x: 0, y: 0.5 }}
+                                    end={{ x: 1, y: 0.5 }}
+                                    style={styles.gradientFill}
+                                >
+                                    <Text
+                                        style={[styles.balanceAmount, { opacity: 0 }]}
+                                        numberOfLines={1}
+                                        adjustsFontSizeToFit
+                                    >
+                                        ${(client.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </Text>
+                                </LinearGradient>
+                            </MaskedView>
+                        )}
+                    </View>
+                    <Text style={styles.updateTime}>Actualizado recientemente</Text>
+                </View>
+
+                <View style={styles.actionButtons}>
+                    <ActionCard
+                        title="Venta"
+                        subtitle="Nueva"
+                        icon={ShoppingCart}
+                        variant="sale"
+                        onPress={() => handleOpenModal('sale')}
+                    />
+                    <ActionCard
+                        title="Abono"
+                        subtitle="Registrar"
+                        icon={CircleDollarSign}
+                        variant="payment"
+                        onPress={() => handleOpenModal('payment')}
+                    />
+                </View>
+
+                <View style={styles.historySection}>
+                    <View style={styles.sectionHeader}>
+                        <View style={styles.sectionTitleContainer}>
+                            <View style={styles.sectionIndicator} />
+                            <Text style={styles.sectionTitle}>Historial</Text>
+                        </View>
+                        <StitchPressable onPress={handleExportPDF}>
+                            <View style={styles.exportButton}>
+                                <FileText color={colors.primary} size={18} />
+                                <Text style={styles.exportText} numberOfLines={1}>Exportar PDF</Text>
+                            </View>
+                        </StitchPressable>
+                    </View>
+                    <View style={styles.filterSection}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearScroll}>
+                            {availableYears.map(year => (
+                                <TouchableOpacity
+                                    key={year}
+                                    style={[styles.yearButton, selectedYear === year && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                                    onPress={() => setSelectedYear(year)}
+                                >
+                                    <Text style={[styles.yearButtonText, selectedYear === year && { color: '#fff' }]}>
+                                        {year}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.monthScroll}
+                            contentContainerStyle={styles.monthScrollContent}
+                        >
+                            <View style={styles.monthScrollInner}>
+                                <TouchableOpacity
+                                    style={[styles.monthButton, selectedMonth === 'all' && { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.1)', borderColor: colors.primary }]}
+                                    onPress={() => setSelectedMonth('all')}
+                                >
+                                    <Text style={[styles.monthButtonText, selectedMonth === 'all' && { color: colors.primary, fontWeight: '800' }]}>
+                                        Todos
+                                    </Text>
+                                </TouchableOpacity>
+                                {['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'].map((month, idx) => (
+                                    <TouchableOpacity
+                                        key={idx}
+                                        style={[styles.monthButton, selectedMonth === idx && { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.1)', borderColor: colors.primary }]}
+                                        onPress={() => setSelectedMonth(idx)}
+                                    >
+                                        <Text style={[styles.monthButtonText, selectedMonth === idx && { color: colors.primary, fontWeight: '800' }]}>
+                                            {month}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </ScrollView>
+                    </View>
+
+                    {Object.keys(groupedTransactions).length > 0 ? (
+                        Object.keys(groupedTransactions || {}).map((groupKey) => (
+                            <View key={groupKey} style={styles.groupContainer}>
+                                <View style={styles.groupHeader}>
+                                    <View style={styles.groupHeaderLine} />
+                                    <Text style={styles.groupText}>{groupKey.toUpperCase()}</Text>
+                                    <View style={styles.groupHeaderLine} />
+                                </View>
+                                {groupedTransactions[groupKey]?.map((t) => (
+                                    <TimelineItem
+                                        key={t.id}
+                                        transaction={t}
+                                        onMorePress={handleOpenTransactionMenu}
+                                    />
+                                ))}
+                            </View>
+                        ))
+                    ) : (
+                        <Text style={styles.emptyHistory}>No hay transacciones para este periodo</Text>
+                    )}
+                </View>
+            </ScrollView>
+
             {/* Transaction Modal */}
             <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}
             >
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={{ flex: 1 }}
-                >
+                <BlurView intensity={30} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill}>
                     <View style={styles.modalOverlay}>
-                        <View style={styles.modalContent}>
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>
-                                    {modalType === 'sale' ? 'Nueva Venta' : 'Registrar Abono'}
-                                </Text>
-                                <StitchPressable onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
-                                    <X color={colors.text} size={24} />
-                                </StitchPressable>
-                            </View>
-
-                            <ScrollView showsVerticalScrollIndicator={false}>
-                                {modalType === 'sale' && (
-                                    <View style={styles.productSelectionContainer}>
-                                        <View style={styles.sectionHeaderSmall}>
-                                            <Text style={styles.inputLabel}>Seleccionar del Catálogo</Text>
+                        <TouchableOpacity
+                            style={StyleSheet.absoluteFill}
+                            activeOpacity={1}
+                            onPress={() => setModalVisible(false)}
+                        />
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            style={{ width: '100%' }}
+                        >
+                            <StitchCard
+                                style={styles.modalContent}
+                                variant="solid"
+                            >
+                                <View style={styles.modalHeader}>
+                                    <View style={styles.modalTitleContainer}>
+                                        <View style={[styles.modalTitleIcon, { backgroundColor: modalType === 'sale' ? colors.primary + '20' : colors.success + '20' }]}>
+                                            {modalType === 'sale' ? <ShoppingCart size={20} color={colors.primary} /> : <CircleDollarSign size={20} color={colors.success} />}
                                         </View>
+                                        <Text style={styles.modalTitle}>
+                                            {modalType === 'sale' ? 'Nueva Venta' : 'Registrar Abono'}
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
+                                        <X color={colors.text} size={20} />
+                                    </TouchableOpacity>
+                                </View>
 
-                                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScrollLarge}>
-                                            {products.map(p => {
-                                                const quantity = cart[p.id] || 0;
-                                                return (
-                                                    <StitchPressable
-                                                        key={p.id}
-                                                        style={[
-                                                            styles.productCardLarge,
-                                                            quantity > 0 ? { borderColor: colors.primary, backgroundColor: colors.primary + '10' } : {}
-                                                        ]}
-                                                        onPress={() => {
-                                                            const newCart = { ...cart };
-                                                            if (quantity > 0) {
-                                                                delete newCart[p.id];
-                                                            } else {
-                                                                newCart[p.id] = 1;
-                                                            }
-                                                            setCart(newCart);
-                                                            updateSalesSummary(newCart, manualItems);
-                                                        }}
-                                                    >
-                                                        {p.image ? (
-                                                            <Image source={{ uri: p.image }} style={styles.productImageLarge} />
-                                                        ) : (
-                                                            <View style={[styles.productImageLarge, { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }]}>
-                                                                <ShoppingCart size={32} color={colors.textSecondary} />
-                                                            </View>
-                                                        )}
-                                                        <View style={styles.productCardInfo}>
-                                                            <Text style={styles.productCardName} numberOfLines={1}>{p.name}</Text>
-                                                            <Text style={styles.productCardPrice}>${p.price.toLocaleString()}</Text>
-                                                        </View>
-                                                        {quantity > 0 && (
-                                                            <View style={styles.productSelectedBadge}>
-                                                                <Text style={styles.productSelectedBadgeText}>{quantity}</Text>
-                                                            </View>
-                                                        )}
-                                                    </StitchPressable>
-                                                );
-                                            })}
-                                        </ScrollView>
-
-                                        <StitchPressable
-                                            onPress={() => setManualItemModalVisible(true)}
-                                            style={{ marginBottom: 24 }}
-                                        >
-                                            <View style={styles.addManualButton}>
-                                                <Plus size={20} color="#fff" />
-                                                <Text style={styles.addManualButtonText}>Añadir Item Personalizado</Text>
-                                            </View>
-                                        </StitchPressable>
-
-                                        {(Object.keys(cart).length > 0 || manualItems.length > 0) && (
-                                            <View style={styles.cartSummaryElegant}>
-                                                <Text style={styles.cartTitleElegant}>CARRITO DE COMPRA</Text>
-
-                                                {Object.entries(cart).map(([prodId, qty]) => {
-                                                    const prod = products.find(p => p.id === prodId);
-                                                    if (!prod) return null;
+                                <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScroll}>
+                                    {modalType === 'sale' && (
+                                        <View style={styles.productSelectionContainer}>
+                                            <Text style={styles.inputLabel}>Seleccionar del Catálogo</Text>
+                                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScrollLarge}>
+                                                {products.map(p => {
+                                                    const quantity = cart[p.id] || 0;
                                                     return (
-                                                        <View key={prodId} style={styles.cartItemElegant}>
-                                                            <View style={styles.cartItemIdentity}>
-                                                                <Text style={styles.cartItemNameElegant}>{prod.name}</Text>
-                                                                <Text style={styles.cartItemPriceElegant}>${prod.price.toLocaleString()} c/u</Text>
-                                                            </View>
-                                                            <View style={styles.cartItemActions}>
-                                                                <View style={styles.quantityControlsModern}>
-                                                                    <TouchableOpacity
-                                                                        onPress={() => {
-                                                                            const newCart = { ...cart };
-                                                                            if (qty > 1) newCart[prodId] = qty - 1;
-                                                                            else delete newCart[prodId];
-                                                                            setCart(newCart);
-                                                                            updateSalesSummary(newCart, manualItems);
-                                                                        }}
-                                                                        style={styles.qtyBtnModern}
-                                                                    >
-                                                                        <X size={12} color={colors.text} />
-                                                                    </TouchableOpacity>
-                                                                    <Text style={styles.qtyTextModern}>{qty}</Text>
-                                                                    <TouchableOpacity
-                                                                        onPress={() => {
-                                                                            const newCart = { ...cart, [prodId]: qty + 1 };
-                                                                            setCart(newCart);
-                                                                            updateSalesSummary(newCart, manualItems);
-                                                                        }}
-                                                                        style={styles.qtyBtnModern}
-                                                                    >
-                                                                        <Plus size={12} color={colors.text} />
-                                                                    </TouchableOpacity>
+                                                        <TouchableOpacity
+                                                            key={p.id}
+                                                            style={[
+                                                                styles.productCardLarge,
+                                                                quantity > 0 && { borderColor: colors.primary, backgroundColor: colors.primary + '10' }
+                                                            ]}
+                                                            onPress={() => {
+                                                                const newCart = { ...cart };
+                                                                if (quantity > 0) delete newCart[p.id];
+                                                                else newCart[p.id] = 1;
+                                                                setCart(newCart);
+                                                                updateSalesSummary(newCart, manualItems);
+                                                            }}
+                                                        >
+                                                            {p.image ? (
+                                                                <Image source={{ uri: p.image }} style={styles.productImageLarge} />
+                                                            ) : (
+                                                                <View style={[styles.productImageLarge, { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }]}>
+                                                                    <ShoppingCart size={28} color={colors.textSecondary} />
                                                                 </View>
-                                                                <Text style={styles.cartItemTotalElegant}>${(prod.price * qty).toLocaleString()}</Text>
+                                                            )}
+                                                            <View style={styles.productCardInfo}>
+                                                                <Text style={styles.productCardName} numberOfLines={1}>{p.name}</Text>
+                                                                <Text style={styles.productCardPrice}>${p.price.toLocaleString()}</Text>
                                                             </View>
-                                                        </View>
+                                                            {quantity > 0 && (
+                                                                <View style={styles.productSelectedBadge}>
+                                                                    <Text style={styles.productSelectedBadgeText}>{quantity}</Text>
+                                                                </View>
+                                                            )}
+                                                        </TouchableOpacity>
                                                     );
                                                 })}
+                                            </ScrollView>
 
-                                                {manualItems.map((item, index) => (
-                                                    <View key={`manual-${index}`} style={styles.cartItemElegant}>
-                                                        <View style={styles.cartItemIdentity}>
-                                                            <Text style={styles.cartItemNameElegant}>{item.productName} (Custom)</Text>
-                                                            <Text style={styles.cartItemPriceElegant}>${item.priceAtSale.toLocaleString()} c/u</Text>
+                                            <StitchButton
+                                                title="Añadir Item Personalizado"
+                                                variant="secondary"
+                                                onPress={() => setManualItemModalVisible(true)}
+                                                style={{ marginBottom: 20 }}
+                                                icon={<Plus size={20} color="#fff" />}
+                                            />
+
+                                            {(Object.keys(cart).length > 0 || manualItems.length > 0) && (
+                                                <View style={styles.cartSummaryElegant}>
+                                                    <Text style={styles.cartTitleElegant}>CARRITO DE COMPRA</Text>
+                                                    {Object.entries(cart).map(([prodId, qty]) => {
+                                                        const prod = products.find(p => p.id === prodId);
+                                                        if (!prod) return null;
+                                                        return (
+                                                            <View key={prodId} style={styles.cartItemElegant}>
+                                                                <View style={styles.cartItemIdentity}>
+                                                                    <Text style={styles.cartItemNameElegant}>{prod.name}</Text>
+                                                                    <Text style={styles.cartItemPriceElegant}>${prod.price.toLocaleString()} c/u</Text>
+                                                                </View>
+                                                                <View style={styles.cartItemActions}>
+                                                                    <View style={styles.quantityControlsModern}>
+                                                                        <TouchableOpacity
+                                                                            onPress={() => {
+                                                                                const newCart = { ...cart };
+                                                                                if (qty > 1) newCart[prodId] = qty - 1;
+                                                                                else delete newCart[prodId];
+                                                                                setCart(newCart);
+                                                                                updateSalesSummary(newCart, manualItems);
+                                                                            }}
+                                                                            style={styles.qtyBtnModern}
+                                                                        >
+                                                                            <X size={12} color={colors.text} />
+                                                                        </TouchableOpacity>
+                                                                        <Text style={styles.qtyTextModern}>{qty}</Text>
+                                                                        <TouchableOpacity
+                                                                            onPress={() => {
+                                                                                const newCart = { ...cart, [prodId]: qty + 1 };
+                                                                                setCart(newCart);
+                                                                                updateSalesSummary(newCart, manualItems);
+                                                                            }}
+                                                                            style={styles.qtyBtnModern}
+                                                                        >
+                                                                            <Plus size={12} color={colors.text} />
+                                                                        </TouchableOpacity>
+                                                                    </View>
+                                                                    <Text style={styles.cartItemTotalElegant}>${(prod.price * qty).toLocaleString()}</Text>
+                                                                </View>
+                                                            </View>
+                                                        );
+                                                    })}
+                                                    {manualItems.map((item, index) => (
+                                                        <View key={`manual-${index}`} style={styles.cartItemElegant}>
+                                                            <View style={styles.cartItemIdentity}>
+                                                                <Text style={styles.cartItemNameElegant}>{item.productName} (Personalizado)</Text>
+                                                                <Text style={styles.cartItemPriceElegant}>${item.priceAtSale.toLocaleString()} c/u</Text>
+                                                            </View>
+                                                            <View style={styles.cartItemActions}>
+                                                                <TouchableOpacity
+                                                                    onPress={() => {
+                                                                        const updated = manualItems.filter((_, i) => i !== index);
+                                                                        setManualItems(updated);
+                                                                        updateSalesSummary(cart, updated);
+                                                                    }}
+                                                                    style={styles.removeManualBtn}
+                                                                >
+                                                                    <Trash2 size={16} color={colors.danger} />
+                                                                </TouchableOpacity>
+                                                                <Text style={styles.cartItemTotalElegant}>${(item.priceAtSale * item.quantity).toLocaleString()}</Text>
+                                                            </View>
                                                         </View>
-                                                        <View style={styles.cartItemActions}>
-                                                            <TouchableOpacity
-                                                                onPress={() => {
-                                                                    const updated = manualItems.filter((_, i) => i !== index);
-                                                                    setManualItems(updated);
-                                                                    updateSalesSummary(cart, updated);
-                                                                }}
-                                                                style={styles.removeManualBtn}
-                                                            >
-                                                                <Trash2 size={16} color={colors.danger} />
-                                                            </TouchableOpacity>
-                                                            <Text style={styles.cartItemTotalElegant}>${(item.priceAtSale * item.quantity).toLocaleString()}</Text>
-                                                        </View>
-                                                    </View>
-                                                ))}
-                                            </View>
-                                        )}
-                                    </View>
-                                )}
+                                                    ))}
+                                                </View>
+                                            )}
+                                        </View>
+                                    )}
 
-                                {modalType === 'payment' && (
-                                    <>
-                                        <StitchInput
-                                            label="Monto ($)"
-                                            value={amount}
-                                            onChangeText={setAmount}
-                                            placeholder="0.00"
-                                            keyboardType="numeric"
-                                            isDark={isDark}
-                                        />
+                                    <StitchInput
+                                        label={modalType === 'sale' ? "Monto Total ($)" : "Monto del Abono ($)"}
+                                        value={amount}
+                                        onChangeText={setAmount}
+                                        placeholder="0.00"
+                                        keyboardType="numeric"
+                                        isDark={isDark}
+                                        editable={modalType !== 'sale' || (Object.keys(cart).length === 0 && manualItems.length === 0)}
+                                    />
 
-                                        <StitchInput
-                                            label="Nota / Descripción"
-                                            value={description}
-                                            onChangeText={setDescription}
-                                            placeholder="Ej. Pago semanal"
-                                            isDark={isDark}
-                                            editable={modalType !== 'sale' || (Object.keys(cart).length === 0 && manualItems.length === 0)}
-                                        />
-                                    </>
-                                )}
+                                    <StitchInput
+                                        label="Descripción / Nota"
+                                        value={description}
+                                        onChangeText={setDescription}
+                                        placeholder="Ej. Pago semanal"
+                                        isDark={isDark}
+                                    />
 
-                                {client.phone ? (
-                                    <StitchPressable
-                                        onPress={() => setNotifyViaWhatsApp(!notifyViaWhatsApp)}
-                                        style={{ marginVertical: 18 }}
-                                    >
-                                        <View style={styles.whatsappToggle}>
-                                            <View style={[styles.checkbox, notifyViaWhatsApp && { backgroundColor: colors.primary, borderColor: colors.primary }] as any}>
+                                    {client.phone && (
+                                        <TouchableOpacity
+                                            onPress={() => setNotifyViaWhatsApp(!notifyViaWhatsApp)}
+                                            style={styles.whatsappToggle}
+                                        >
+                                            <View style={[styles.checkbox, notifyViaWhatsApp && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
                                                 {notifyViaWhatsApp && <View style={styles.checkboxInner} />}
                                             </View>
-                                            <Text style={styles.whatsappToggleText} numberOfLines={1}>Enviar comprobante por WhatsApp</Text>
-                                        </View>
-                                    </StitchPressable>
-                                ) : (
-                                    <Text style={styles.noPhoneText}>Añade un teléfono para enviar comprobantes por WhatsApp</Text>
-                                )}
+                                            <Text style={styles.whatsappToggleText}>Notificar por WhatsApp</Text>
+                                        </TouchableOpacity>
+                                    )}
 
-                                <StitchButton
-                                    title={modalType === 'sale' ? 'Agregar Venta' : 'Confirmar Abono'}
-                                    variant={modalType === 'sale' ? 'primary' : 'secondary'}
-                                    onPress={handleSaveTransaction}
-                                    style={{ marginTop: 10 }}
-                                />
-                            </ScrollView>
-                        </View>
+                                    <StitchButton
+                                        title={modalType === 'sale' ? 'Confirmar Venta' : 'Confirmar Abono'}
+                                        variant={modalType === 'sale' ? 'primary' : 'secondary'}
+                                        onPress={handleSaveTransaction}
+                                    />
+                                </ScrollView>
+                            </StitchCard>
+                        </KeyboardAvoidingView>
                     </View>
-                </KeyboardAvoidingView>
+                </BlurView>
             </Modal>
 
             {/* Edit Transaction Modal */}
@@ -543,11 +765,16 @@ export default function ClienteDetailScreen() {
                 visible={editTransactionModalVisible}
                 onRequestClose={() => setEditTransactionModalVisible(false)}
             >
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={{ flex: 1 }}
-                >
-                    <View style={styles.modalOverlay}>
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity
+                        style={StyleSheet.absoluteFill}
+                        activeOpacity={1}
+                        onPress={() => setEditTransactionModalVisible(false)}
+                    />
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={{ width: '100%' }}
+                    >
                         <View style={styles.modalContent}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>
@@ -720,8 +947,8 @@ export default function ClienteDetailScreen() {
                                 />
                             </ScrollView>
                         </View>
-                    </View>
-                </KeyboardAvoidingView>
+                    </KeyboardAvoidingView>
+                </View>
             </Modal>
 
             {/* Confirm Dialogs */}
@@ -1005,196 +1232,7 @@ export default function ClienteDetailScreen() {
                     </View>
                 </View>
             </Modal>
-
-            <View style={styles.header}>
-                <StitchPressable onPress={() => router.back()} style={styles.backButton}>
-                    <ChevronLeft color={colors.text} size={24} />
-                </StitchPressable>
-                <View style={styles.headerTitleContainer}>
-                    <Text style={styles.headerSubtitle}>EXPEDIENTE</Text>
-                    <Text style={styles.headerTitle}>{client.name}</Text>
-                    {client.location && (
-                        <Text style={styles.headerLocation}>{client.location}</Text>
-                    )}
-                </View>
-                <StitchPressable style={styles.moreButton} onPress={() => setShowClientMenu(true)}>
-                    <MoreVertical color={colors.text} size={24} />
-                </StitchPressable>
-            </View>
-
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                <View style={styles.profileSection}>
-                    <StitchPressable onPress={handlePickImage} style={styles.avatarContainer}>
-                        <LinearGradient
-                            colors={colors.gradientPrimary as any}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.avatarGradient}
-                        >
-                            <View style={[
-                                styles.avatarImageContainer,
-                                !client.image && { backgroundColor: 'transparent' }
-                            ]}>
-                                {client.image ? (
-                                    <Image
-                                        source={{ uri: client.image }}
-                                        style={{ width: '100%', height: '100%' }}
-                                    />
-                                ) : (
-                                    <View style={styles.letterAvatar}>
-                                        <Text style={styles.letterAvatarText}>{getInitial(client.name)}</Text>
-                                    </View>
-                                )}
-                            </View>
-                            <View style={styles.editImageIcon}>
-                                <Plus size={14} color="#fff" />
-                            </View>
-                        </LinearGradient>
-                    </StitchPressable>
-                </View>
-
-                <View style={styles.balanceContainer}>
-                    <Text style={styles.balanceLabel}>SALDO PENDIENTE</Text>
-                    <View style={styles.balanceWrapper}>
-                        {Platform.OS === 'web' ? (
-                            <Text
-                                style={[styles.balanceAmount, { color: client.totalBalance > 0 ? (colors.primary || '#3B82F6') : (colors.success || '#10b981') }]}
-                                numberOfLines={1}
-                                adjustsFontSizeToFit
-                            >
-                                ${(client.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </Text>
-                        ) : (
-                            <MaskedView
-                                style={styles.maskedView}
-                                maskElement={
-                                    <Text
-                                        style={styles.balanceAmount}
-                                        numberOfLines={1}
-                                        adjustsFontSizeToFit
-                                    >
-                                        ${(client.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </Text>
-                                }
-                            >
-                                <LinearGradient
-                                    colors={colors.gradientPrimary as any}
-                                    start={{ x: 0, y: 0.5 }}
-                                    end={{ x: 1, y: 0.5 }}
-                                    style={styles.gradientFill}
-                                >
-                                    <Text
-                                        style={[styles.balanceAmount, { opacity: 0 }]}
-                                        numberOfLines={1}
-                                        adjustsFontSizeToFit
-                                    >
-                                        ${(client.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </Text>
-                                </LinearGradient>
-                            </MaskedView>
-                        )}
-                    </View>
-                    <Text style={styles.updateTime}>Actualizado recientemente</Text>
-                </View>
-
-                <View style={styles.actionButtons}>
-                    <ActionCard
-                        title="Venta"
-                        subtitle="Nueva"
-                        icon={ShoppingCart}
-                        variant="sale"
-                        onPress={() => handleOpenModal('sale')}
-                    />
-                    <ActionCard
-                        title="Abono"
-                        subtitle="Registrar"
-                        icon={CircleDollarSign}
-                        variant="payment"
-                        onPress={() => handleOpenModal('payment')}
-                    />
-                </View>
-
-                <View style={styles.historySection}>
-                    <View style={styles.sectionHeader}>
-                        <View style={styles.sectionTitleContainer}>
-                            <View style={styles.sectionIndicator} />
-                            <Text style={styles.sectionTitle}>Historial</Text>
-                        </View>
-                        <StitchPressable onPress={handleExportPDF}>
-                            <View style={styles.exportButton}>
-                                <FileText color={colors.primary} size={18} />
-                                <Text style={styles.exportText} numberOfLines={1}>Exportar PDF</Text>
-                            </View>
-                        </StitchPressable>
-                    </View>
-                    <View style={styles.filterSection}>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearScroll}>
-                            {availableYears.map(year => (
-                                <TouchableOpacity
-                                    key={year}
-                                    style={[styles.yearButton, selectedYear === year && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                                    onPress={() => setSelectedYear(year)}
-                                >
-                                    <Text style={[styles.yearButtonText, selectedYear === year && { color: '#fff' }]}>
-                                        {year}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            style={styles.monthScroll}
-                            contentContainerStyle={styles.monthScrollContent}
-                        >
-                            <View style={styles.monthScrollInner}>
-                                <TouchableOpacity
-                                    style={[styles.monthButton, selectedMonth === 'all' && { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.1)', borderColor: colors.primary }]}
-                                    onPress={() => setSelectedMonth('all')}
-                                >
-                                    <Text style={[styles.monthButtonText, selectedMonth === 'all' && { color: colors.primary, fontWeight: '800' }]}>
-                                        Todos
-                                    </Text>
-                                </TouchableOpacity>
-                                {['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'].map((month, idx) => (
-                                    <TouchableOpacity
-                                        key={idx}
-                                        style={[styles.monthButton, selectedMonth === idx && { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.1)', borderColor: colors.primary }]}
-                                        onPress={() => setSelectedMonth(idx)}
-                                    >
-                                        <Text style={[styles.monthButtonText, selectedMonth === idx && { color: colors.primary, fontWeight: '800' }]}>
-                                            {month}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        </ScrollView>
-                    </View>
-
-                    {Object.keys(groupedTransactions).length > 0 ? (
-                        Object.keys(groupedTransactions || {}).map((groupKey) => (
-                            <View key={groupKey} style={styles.groupContainer}>
-                                <View style={styles.groupHeader}>
-                                    <View style={styles.groupHeaderLine} />
-                                    <Text style={styles.groupText}>{groupKey.toUpperCase()}</Text>
-                                    <View style={styles.groupHeaderLine} />
-                                </View>
-                                {groupedTransactions[groupKey]?.map((t) => (
-                                    <TimelineItem
-                                        key={t.id}
-                                        transaction={t}
-                                        onMorePress={handleOpenTransactionMenu}
-                                    />
-                                ))}
-                            </View>
-                        ))
-                    ) : (
-                        <Text style={styles.emptyHistory}>No hay transacciones para este periodo</Text>
-                    )}
-                </View>
-            </ScrollView>
-        </SafeAreaView >
+        </SafeAreaView>
     );
 }
 
@@ -1203,108 +1241,127 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
+    bgGlowWrapper: {
+        ...StyleSheet.absoluteFillObject,
+        overflow: 'hidden',
+        zIndex: -1,
+    },
+    glowSphere: {
+        position: 'absolute',
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+    },
     center: {
         flex: 1,
-        backgroundColor: colors.background,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: colors.background,
+        padding: 20,
+    },
+    scrollContent: {
+        paddingTop: 10,
+        paddingBottom: 120,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingVertical: 10,
+        paddingTop: Platform.OS === 'android' ? 40 : 10,
+        paddingBottom: 20,
+    },
+    headerTitleContainer: {
+        flex: 1,
+        marginLeft: 16,
+    },
+    headerSubtitle: {
+        fontSize: 9,
+        fontFamily: 'Manrope_800ExtraBold',
+        color: colors.textSecondary,
+        letterSpacing: 1.5,
+        opacity: 0.6,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontFamily: 'Manrope_800ExtraBold',
+        color: colors.text,
+        letterSpacing: -0.3,
+    },
+    headerLocation: {
+        fontSize: 13,
+        fontFamily: 'Manrope_600SemiBold',
+        color: colors.textSecondary,
+        opacity: 0.8,
     },
     backButton: {
         width: 44,
         height: 44,
-        backgroundColor: colors.card,
         borderRadius: 12,
+        backgroundColor: colors.glass,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: colors.border,
-    },
-    headerTitleContainer: {
-        alignItems: 'center',
-    },
-    headerSubtitle: {
-        color: colors.textSecondary,
-        fontSize: 10,
-        fontWeight: '700',
-        letterSpacing: 2,
-        marginBottom: 2,
-    },
-    headerTitle: {
-        color: colors.text,
-        fontSize: 16,
-        fontWeight: '800',
-    },
-    headerLocation: {
-        color: colors.textSecondary,
-        fontSize: 12,
-        marginTop: 2,
-        fontStyle: 'italic',
+        borderColor: colors.glassBorder,
     },
     moreButton: {
         width: 44,
         height: 44,
-        backgroundColor: colors.card,
-        borderRadius: 22,
+        borderRadius: 12,
+        backgroundColor: colors.glass,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: colors.border,
-    },
-    scrollContent: {
-        padding: 24,
+        borderColor: colors.glassBorder,
     },
     profileSection: {
         alignItems: 'center',
-        marginBottom: 40,
+        marginBottom: 30,
+        marginTop: 10,
     },
     avatarContainer: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.15,
-        shadowRadius: 15,
-        elevation: 10,
+        width: 106,
+        height: 106,
+        borderRadius: 53,
+        position: 'relative',
     },
     avatarGradient: {
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        padding: 5,
+        width: 106,
+        height: 106,
+        borderRadius: 53,
+        padding: 3,
         alignItems: 'center',
         justifyContent: 'center',
     },
     avatarImageContainer: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 62,
-        backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0',
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: colors.card,
         overflow: 'hidden',
-        alignItems: 'center',
-        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: colors.background,
     },
     letterAvatar: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: colors.primary + '20',
     },
     letterAvatarText: {
-        fontSize: 48,
-        fontWeight: '800',
-        color: '#fff',
+        fontSize: 40,
+        fontFamily: 'Manrope_800ExtraBold',
+        color: '#FFFFFF',
+        textAlign: 'center',
     },
     editImageIcon: {
         position: 'absolute',
-        bottom: 5,
-        right: 5,
+        bottom: 0,
+        right: 0,
         backgroundColor: colors.primary,
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 3,
@@ -1312,502 +1369,338 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     },
     balanceContainer: {
         alignItems: 'center',
-        marginBottom: 48,
-    },
-    balanceLabel: {
-        color: colors.textSecondary,
-        fontSize: 12,
-        fontWeight: '700',
-        letterSpacing: 2,
-        marginBottom: 8,
+        marginBottom: 32,
     },
     balanceWrapper: {
-        height: 80,
-        width: '100%',
-        alignItems: 'center',
+        height: 60,
         justifyContent: 'center',
     },
     maskedView: {
-        width: '100%',
-        height: '100%',
+        height: 60,
+        width: 300,
     },
     gradientFill: {
         flex: 1,
-        width: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
+    },
+    balanceLabel: {
+        fontSize: 12,
+        fontFamily: 'Manrope_800ExtraBold',
+        color: colors.textSecondary,
+        letterSpacing: 1.5,
+        marginBottom: 4,
     },
     balanceAmount: {
-        fontSize: 56,
-        fontWeight: Platform.OS === 'ios' ? '900' : 'bold',
-        color: 'black',
-        letterSpacing: -1,
+        fontSize: 38,
+        fontFamily: 'Manrope_800ExtraBold',
+        color: '#FFFFFF',
+        letterSpacing: -1.5,
         textAlign: 'center',
-        paddingHorizontal: 10,
     },
     updateTime: {
+        fontSize: 12,
+        fontFamily: 'Manrope_600SemiBold',
         color: colors.textSecondary,
-        fontSize: 13,
-        marginTop: 4,
+        opacity: 0.5,
+        marginTop: 8,
     },
     actionButtons: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 48,
+        paddingHorizontal: 20,
+        gap: 16,
+        marginBottom: 32,
     },
     historySection: {
-        flex: 1,
+        paddingTop: 8,
     },
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24,
+        paddingHorizontal: 20,
+        marginBottom: 16,
     },
     sectionTitleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 10,
     },
     sectionIndicator: {
         width: 4,
-        height: 24,
-        backgroundColor: colors.secondary,
+        height: 20,
+        backgroundColor: colors.primary,
         borderRadius: 2,
-        marginRight: 12,
     },
     sectionTitle: {
-        color: colors.text,
         fontSize: 22,
-        fontWeight: '800',
+        fontFamily: 'Manrope_800ExtraBold',
+        color: colors.text,
+        letterSpacing: -0.5,
     },
     exportButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.08)',
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 14,
-        flexWrap: 'nowrap',
-        minHeight: 44,
+        gap: 6,
+        backgroundColor: colors.primary + '15',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
     },
     exportText: {
+        fontSize: 13,
+        fontFamily: 'Manrope_700Bold',
         color: colors.primary,
-        fontSize: 14,
-        fontWeight: '700',
-        marginLeft: 6,
     },
     filterSection: {
-        marginBottom: 24,
+        marginBottom: 20,
     },
     yearScroll: {
-        marginBottom: 12,
+        paddingLeft: 20,
+        marginBottom: 16,
     },
     yearButton: {
         paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: 20,
-        backgroundColor: colors.card,
+        paddingVertical: 8,
+        borderRadius: 12,
+        backgroundColor: colors.glass,
         marginRight: 8,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: colors.glassBorder,
     },
     yearButtonText: {
+        fontSize: 14,
+        fontFamily: 'Manrope_700Bold',
         color: colors.textSecondary,
-        fontSize: 12,
-        fontWeight: '700',
     },
     monthScroll: {
-        marginBottom: 16,
+        paddingLeft: 20,
     },
     monthScrollContent: {
-        paddingHorizontal: 20,
+        paddingRight: 20,
     },
     monthScrollInner: {
         flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        gap: 12, // Modern way to handle spacing
+        gap: 8,
     },
     monthButton: {
-        paddingHorizontal: 14,
-        paddingVertical: 6,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
         borderRadius: 12,
-        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-        marginRight: 6,
+        backgroundColor: colors.glass,
         borderWidth: 1,
-        borderColor: 'transparent',
-        minWidth: 60,
-        alignItems: 'center',
-        justifyContent: 'center',
+        borderColor: colors.glassBorder,
     },
     monthButtonText: {
+        fontSize: 14,
+        fontFamily: 'Manrope_700Bold',
         color: colors.textSecondary,
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    groupText: {
-        color: colors.primary,
-        fontSize: 12,
-        fontWeight: '900',
-        letterSpacing: 2,
-        marginHorizontal: 16,
     },
     groupContainer: {
-        marginBottom: 32,
+        paddingHorizontal: 20,
+        marginBottom: 24,
     },
     groupHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 10,
-        marginBottom: 20,
+        gap: 12,
+        marginBottom: 16,
     },
     groupHeaderLine: {
         flex: 1,
         height: 1,
-        backgroundColor: colors.border,
+        backgroundColor: colors.glassBorder,
+    },
+    groupText: {
+        fontSize: 11,
+        fontFamily: 'Manrope_800ExtraBold',
+        color: colors.textSecondary,
+        letterSpacing: 1.5,
     },
     emptyHistory: {
-        color: colors.textSecondary,
         textAlign: 'center',
+        color: colors.textSecondary,
+        fontFamily: 'Manrope_600SemiBold',
         marginTop: 40,
-        fontStyle: 'italic',
+        fontSize: 15,
+    },
+    emptyState: {
+        paddingVertical: 60,
+        alignItems: 'center',
+    },
+    emptyStateText: {
+        fontSize: 15,
+        fontFamily: 'Manrope_500Medium',
+        color: colors.textSecondary,
+    },
+    // BottomSheet Styles
+    sheetOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    sheetBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    sheetContent: {
+        backgroundColor: colors.card,
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 36,
+        padding: 24,
+        paddingBottom: Platform.OS === 'ios' ? 50 : 30,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+    },
+    sheetIndicator: {
+        width: 40,
+        height: 5,
+        backgroundColor: colors.glassBorder,
+        borderRadius: 3,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    sheetTitle: {
+        fontSize: 22,
+        fontFamily: 'Manrope_800ExtraBold',
+        color: colors.text,
+        marginBottom: 4,
+    },
+    sheetSubtitle: {
+        fontSize: 14,
+        fontFamily: 'Manrope_600SemiBold',
+        color: colors.textSecondary,
+        marginBottom: 24,
+    },
+    sheetList: {
+        marginBottom: 20,
+    },
+    sheetRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        gap: 16,
+    },
+    sheetRowIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    sheetRowText: {
+        fontSize: 16,
+        fontFamily: 'Manrope_700Bold',
+        color: colors.text,
+    },
+    sheetDivider: {
+        height: 1,
+        backgroundColor: colors.glassBorder,
+        marginVertical: 4,
+    },
+    sheetCancelRow: {
+        alignItems: 'center',
+        paddingVertical: 12,
+        marginTop: 8,
+    },
+    sheetCancelText: {
+        fontSize: 16,
+        fontFamily: 'Manrope_700Bold',
+        color: colors.textSecondary,
     },
     // Modal Styles
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: colors.background,
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
+        backgroundColor: colors.card,
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 36,
         padding: 24,
-        paddingBottom: 40,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+        maxHeight: '90%',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 28,
+    },
+    modalTitleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    modalTitleIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     modalTitle: {
-        color: colors.text,
-        fontSize: 20,
-        fontWeight: '800',
-    },
-    catalogSection: {
-        marginBottom: 20,
-    },
-    catalogTitle: {
-        color: colors.textSecondary,
-        fontSize: 13,
-        fontWeight: '600',
-        marginBottom: 10,
-    },
-    catalogScroll: {
-        flexGrow: 0,
-    },
-    productSelectionContainer: {
-        marginBottom: 15,
-    },
-    inputLabel: {
-        color: colors.textSecondary,
-        fontSize: 12,
-        fontWeight: 'bold',
-        marginBottom: 8,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    productsScroll: {
-        flexDirection: 'row',
-        marginBottom: 10,
-    },
-    productChip: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        borderWidth: 1.5,
-        borderColor: colors.border,
-        marginRight: 8,
-        backgroundColor: colors.card,
-    },
-    productChipText: {
-        color: colors.textSecondary,
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    productImageTiny: {
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-    },
-    quantityBadge: {
-        backgroundColor: colors.primary,
-        borderRadius: 10,
-        minWidth: 18,
-        height: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 4,
-    },
-    quantityBadgeText: {
-        color: '#fff',
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
-    cartSummary: {
-        marginTop: 15,
-        padding: 15,
-        backgroundColor: colors.card,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    cartTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: colors.text,
-        marginBottom: 10,
-    },
-    cartItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 8,
-    },
-    cartItemName: {
-        flex: 1,
-        fontSize: 13,
+        fontSize: 22,
+        fontFamily: 'Manrope_800ExtraBold',
         color: colors.text,
     },
-    quantityControls: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginHorizontal: 15,
-    },
-    qtyBtn: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: colors.border,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    qtyBtnText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: colors.text,
-    },
-    qtyText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.text,
-        minWidth: 15,
-        textAlign: 'center',
-    },
-    cartItemPrice: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: colors.text,
-        minWidth: 70,
-        textAlign: 'right',
-    },
-    catalogItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.card,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 12,
-        marginRight: 10,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    catalogItemName: {
-        color: colors.text,
-        fontSize: 13,
-        marginLeft: 6,
-        fontWeight: '600',
-    },
-    catalogItemPrice: {
-        color: colors.primary,
-        fontSize: 13,
-        marginLeft: 8,
-        fontWeight: '800',
-    },
-    whatsappToggle: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        marginVertical: 18,
-        paddingLeft: 4,
-        flexWrap: 'nowrap',
-    },
-    checkbox: {
-        width: 22,
-        height: 22,
-        borderRadius: 6,
-        borderWidth: 2,
-        borderColor: colors.border,
-        marginRight: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-    },
-    checkboxInner: {
-        width: 10,
-        height: 10,
-        borderRadius: 2,
-        backgroundColor: '#fff',
-    },
-    whatsappToggleText: {
-        color: colors.text,
-        fontSize: 14,
-        fontWeight: '600',
-        flexShrink: 1,
-    },
-    noPhoneText: {
-        color: colors.textSecondary,
-        fontSize: 12,
-        fontStyle: 'italic',
-        marginBottom: 15,
-    },
-    sheetOverlay: {
-        flex: 1,
-        justifyContent: 'flex-end',
-    },
-    sheetBackdrop: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    sheetContent: {
-        backgroundColor: colors.background,
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        paddingTop: 14,
-        paddingHorizontal: 16,
-        paddingBottom: 40,
-        elevation: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-    },
-    sheetIndicator: {
-        width: 36,
-        height: 4,
-        backgroundColor: colors.border,
-        borderRadius: 2,
-        alignSelf: 'center',
-        marginBottom: 24,
-    },
-    sheetTitle: {
-        fontSize: 20,
-        fontWeight: '800',
-        color: colors.text,
-        marginBottom: 4,
-        paddingHorizontal: 4,
-    },
-    sheetSubtitle: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        fontWeight: '500',
-        marginBottom: 24,
-        paddingHorizontal: 4,
-    },
-    sheetList: {
-        backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-        borderRadius: 18,
-        overflow: 'hidden',
-        marginBottom: 12,
-    },
-    sheetRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 18,
-        paddingHorizontal: 20,
-        gap: 16,
-    },
-    sheetRowIcon: {
+    closeButton: {
         width: 40,
         height: 40,
-        borderRadius: 12,
+        borderRadius: 20,
+        backgroundColor: colors.glass,
         alignItems: 'center',
         justifyContent: 'center',
-        flexShrink: 0,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
     },
-    sheetRowText: {
-        fontSize: 17,
-        fontWeight: '600',
-        color: colors.text,
-        flex: 1,
+    modalScroll: {
+        marginBottom: 10,
     },
-    sheetDivider: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: colors.border,
-        marginLeft: 76,
-        marginRight: 20,
-    },
-    sheetCancelRow: {
-        backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-        borderRadius: 18,
-        paddingVertical: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    sheetCancelText: {
-        fontSize: 17,
-        fontWeight: '600',
+    inputLabel: {
+        fontSize: 14,
+        fontFamily: 'Manrope_700Bold',
         color: colors.textSecondary,
-    },
-    // New Sales Flow Styles
-    sectionHeaderSmall: {
         marginBottom: 12,
+        marginLeft: 4,
+    },
+    productSelectionContainer: {
+        marginBottom: 24,
     },
     productsScrollLarge: {
         marginBottom: 20,
-        paddingBottom: 5,
     },
     productCardLarge: {
         width: 140,
         backgroundColor: colors.card,
-        borderRadius: 20,
-        borderWidth: 1.5,
-        borderColor: colors.border,
-        marginRight: 12,
+        borderRadius: 24,
+        marginRight: 14,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
         overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
     },
     productImageLarge: {
         width: '100%',
         height: 100,
-        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
     },
     productCardInfo: {
         padding: 12,
     },
     productCardName: {
         fontSize: 14,
-        fontWeight: '700',
+        fontFamily: 'Manrope_700Bold',
         color: colors.text,
-        marginBottom: 2,
+        marginBottom: 4,
     },
     productCardPrice: {
         fontSize: 13,
-        fontWeight: '800',
+        fontFamily: 'Manrope_800ExtraBold',
         color: colors.primary,
     },
     productSelectedBadge: {
         position: 'absolute',
-        top: 8,
-        right: 8,
+        top: 10,
+        right: 10,
         backgroundColor: colors.primary,
         width: 24,
         height: 24,
@@ -1820,42 +1713,20 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     productSelectedBadgeText: {
         color: '#fff',
         fontSize: 11,
-        fontWeight: '900',
-    },
-    addManualButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.secondary,
-        paddingVertical: 18,
-        paddingHorizontal: 12, // Ensure text doesn't hit edges
-        borderRadius: 20,
-        flexWrap: 'nowrap',
-        shadowColor: colors.secondary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
-        width: '100%', // Ensure it takes full width
-    },
-    addManualButtonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: '900',
-        marginLeft: 12,
+        fontFamily: 'Manrope_800ExtraBold',
     },
     cartSummaryElegant: {
-        backgroundColor: isDark ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.03)',
+        backgroundColor: colors.glass,
         borderRadius: 24,
         padding: 20,
         borderWidth: 1,
-        borderColor: colors.primary + '20',
-        marginBottom: 20,
+        borderColor: colors.glassBorder,
+        marginBottom: 24,
     },
     cartTitleElegant: {
         fontSize: 12,
-        fontWeight: '900',
-        color: colors.primary,
+        fontFamily: 'Manrope_800ExtraBold',
+        color: colors.textSecondary,
         letterSpacing: 2,
         marginBottom: 16,
         textAlign: 'center',
@@ -1864,22 +1735,20 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 16,
-        paddingBottom: 16,
+        paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: colors.border + '50',
+        borderBottomColor: colors.glassBorder,
     },
     cartItemIdentity: {
         flex: 1,
     },
     cartItemNameElegant: {
         fontSize: 15,
-        fontWeight: '700',
+        fontFamily: 'Manrope_700Bold',
         color: colors.text,
-        marginBottom: 2,
     },
     cartItemPriceElegant: {
-        fontSize: 12,
+        fontSize: 13,
         color: colors.textSecondary,
     },
     cartItemActions: {
@@ -1890,42 +1759,79 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     quantityControlsModern: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.card,
-        borderRadius: 12,
-        padding: 4,
-        borderWidth: 1,
-        borderColor: colors.border,
+        gap: 10,
     },
     qtyBtnModern: {
         width: 28,
         height: 28,
-        borderRadius: 8,
-        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+        borderRadius: 14,
+        backgroundColor: colors.card,
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
     },
     qtyTextModern: {
-        fontSize: 14,
-        fontWeight: '800',
+        fontSize: 15,
+        fontFamily: 'Manrope_800ExtraBold',
         color: colors.text,
-        marginHorizontal: 10,
-        minWidth: 20,
-        textAlign: 'center',
     },
     cartItemTotalElegant: {
         fontSize: 15,
-        fontWeight: '800',
+        fontFamily: 'Manrope_800ExtraBold',
         color: colors.text,
         minWidth: 70,
         textAlign: 'right',
     },
-    removeManualBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: colors.danger + '10',
+    whatsappToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginVertical: 15,
+        padding: 16,
+        borderRadius: 18,
+        backgroundColor: colors.glass,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+    },
+    checkbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
     },
+    checkboxInner: {
+        width: 12,
+        height: 12,
+        borderRadius: 3,
+        backgroundColor: '#fff',
+    },
+    whatsappToggleText: {
+        fontSize: 15,
+        fontFamily: 'Manrope_700Bold',
+        color: colors.text,
+    },
+    addManualButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        backgroundColor: colors.primary,
+        paddingVertical: 16,
+        borderRadius: 18,
+    },
+    addManualButtonText: {
+        color: '#fff',
+        fontFamily: 'Manrope_700Bold',
+        fontSize: 16,
+    },
+    sectionHeaderSmall: {
+        marginBottom: 12,
+    },
+    removeManualBtn: {
+        padding: 4,
+    },
 });
-

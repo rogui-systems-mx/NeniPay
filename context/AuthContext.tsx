@@ -8,7 +8,7 @@ interface AuthContextType {
     loading: boolean;
     isConfigured: boolean;
     logout: () => Promise<void>;
-    updateProfileInfo: (displayName: string, businessName?: string, phone?: string) => Promise<void>;
+    updateProfileInfo: (displayName: string, businessName?: string, phone?: string, photoURL?: string) => Promise<void>;
     updateEmailInfo: (email: string) => Promise<void>;
     updatePasswordInfo: (password: string) => Promise<void>;
     verifyPassword: (password: string) => Promise<boolean>;
@@ -60,8 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         setBusinessName(data.businessName || null);
                     }
                 }
-            } catch (e) {
-                console.error('Error during auth state change processing:', e);
+            } catch (e: any) {
+                console.warn('[AuthContext] Error fetching user data. Please check Firebase Firestore Rules:', e.message);
             } finally {
                 setLoading(false);
                 clearTimeout(timeoutId);
@@ -88,14 +88,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const updateProfileInfo = async (displayName: string, businessName?: string, phone?: string) => {
+    const updateProfileInfo = async (displayName: string, businessName?: string, phone?: string, photoURL?: string) => {
         if (!user) return;
         try {
-            await updateProfile(user, { displayName });
+            await updateProfile(user, { displayName, photoURL });
 
             const updates: any = {};
             if (phone !== undefined) updates.phone = phone;
             if (businessName !== undefined) updates.businessName = businessName;
+            if (photoURL !== undefined) updates.photoURL = photoURL;
 
             if (Object.keys(updates).length > 0) {
                 await setDoc(doc(db, 'users', user.uid), updates, { merge: true });
@@ -104,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             // Trigger UI refresh
-            setUser({ ...user, displayName });
+            setUser({ ...user, displayName, photoURL: photoURL || user.photoURL });
         } catch (error) {
             throw error;
         }
