@@ -352,7 +352,7 @@ export default function AuthScreen() {
                 onRequestClose={() => setForgotPasswordModalVisible(false)}
             >
                 <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
-                    <View style={[styles.modalContent, { backgroundColor: colors.card, padding: 24, borderRadius: 28, width: '90%', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20 }]}>
+                    <View style={[styles.modalContent, { backgroundColor: isDark ? colors.card : 'rgba(255, 255, 255, 0.98)', padding: 24, borderRadius: 28, width: '90%', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20 }]}>
                         <TouchableOpacity
                             style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}
                             onPress={() => setForgotPasswordModalVisible(false)}

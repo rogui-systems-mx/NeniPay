@@ -1541,7 +1541,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
     },
     sheetContent: {
-        backgroundColor: colors.card,
+        backgroundColor: isDark ? colors.card : 'rgba(255, 255, 255, 0.98)',
         borderTopLeftRadius: 36,
         borderTopRightRadius: 36,
         padding: 24,
@@ -1612,7 +1612,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: colors.card,
+        backgroundColor: isDark ? colors.card : 'rgba(255, 255, 255, 0.95)',
         borderTopLeftRadius: 36,
         borderTopRightRadius: 36,
         padding: 24,
@@ -1672,7 +1672,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     },
     productCardLarge: {
         width: 140,
-        backgroundColor: colors.card,
+        backgroundColor: isDark ? colors.card : 'rgba(255, 255, 255, 0.92)',
         borderRadius: 24,
         marginRight: 14,
         borderWidth: 1,
@@ -1716,7 +1716,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         fontFamily: 'Manrope_800ExtraBold',
     },
     cartSummaryElegant: {
-        backgroundColor: colors.glass,
+        backgroundColor: isDark ? colors.glass : 'rgba(241, 245, 249, 0.95)',
         borderRadius: 24,
         padding: 20,
         borderWidth: 1,
@@ -1790,7 +1790,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         marginVertical: 15,
         padding: 16,
         borderRadius: 18,
-        backgroundColor: colors.glass,
+        backgroundColor: isDark ? colors.glass : 'rgba(255, 255, 255, 0.85)',
         borderWidth: 1,
         borderColor: colors.glassBorder,
     },

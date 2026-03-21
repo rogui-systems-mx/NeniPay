@@ -31,8 +31,8 @@ export const Colors = {
   brand: palette,
   light: {
     background: '#F8FAFC',
-    card: 'rgba(255, 255, 255, 0.4)', // More transparent for better blending
-    cardSecondary: 'rgba(241, 245, 249, 0.5)',
+    card: 'rgba(255, 255, 255, 0.85)', // More opaque for better readability in light theme
+    cardSecondary: 'rgba(241, 245, 249, 0.92)',
     text: palette.gray900,
     textSecondary: palette.gray500,
     border: 'rgba(37, 99, 235, 0.08)', 
@@ -50,8 +50,8 @@ export const Colors = {
     gradientSecondary: [palette.purple, '#D946EF'], 
     gradientDanger: [palette.danger, '#F97316'],
     gradientSuccess: [palette.success, '#34D399'],
-    glass: 'rgba(255, 255, 255, 0.25)',
-    glassBorder: 'rgba(0, 0, 0, 0.06)', // Darker border for definition without "white mask"
+    glass: 'rgba(255, 255, 255, 0.70)',
+    glassBorder: 'rgba(0, 0, 0, 0.06)', 
     bgGlow1: 'rgba(37, 99, 235, 0.06)',
     bgGlow2: 'rgba(124, 58, 237, 0.06)',
   },

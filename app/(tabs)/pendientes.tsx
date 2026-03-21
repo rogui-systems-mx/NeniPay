@@ -115,28 +115,29 @@ export default function PendientesScreen() {
                     style={[
                         styles.heroCard, 
                         { 
-                            backgroundColor: '#0f172a', 
+                            // Fondo blanco premium para el modo claro (solicitado)
+                            backgroundColor: isDark ? '#0f172a' : 'rgba(255, 255, 255, 0.95)', 
                             borderWidth: 0, 
                             margin: 0, 
-                            marginBottom: 0, // Reset margin from style
-                            borderRadius: 30, // 32 - 2 = 30
-                            height: 180 - 4, // Compensation for padding if height is fixed
+                            marginBottom: 0, 
+                            borderRadius: 30, 
+                            height: 180 - 4, 
                         }
                     ]}
                 >
                     <View style={[styles.heroContent, { alignItems: 'center' }]}>
                         <View style={[styles.heroTop, { justifyContent: 'center', marginBottom: 8 }]}>
-                            <View style={[styles.iconCircle, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                                <TrendingDown color="#FFFFFF" size={20} />
+                            <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : colors.primary + '15' }]}>
+                                <TrendingDown color={isDark ? "#FFFFFF" : colors.primary} size={20} />
                             </View>
-                            <Text style={[styles.heroLabel, { color: '#FFFFFF', opacity: 0.8 }]}>TOTAL POR COBRAR</Text>
+                            <Text style={[styles.heroLabel, { color: isDark ? '#FFFFFF' : colors.text, opacity: 0.8 }]}>TOTAL POR COBRAR</Text>
                         </View>
                         <Text style={[styles.heroAmount, { color: colors.danger, textAlign: 'center' }]}>
                             ${stats.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                         </Text>
                         <View style={[styles.heroFooter, { justifyContent: 'center' }]}>
-                            <AlertCircle color={colors.textSecondary} size={14} opacity={0.6} />
-                            <Text style={styles.heroMetaText}>{stats.totalCount} deudores activos</Text>
+                            <AlertCircle color={isDark ? colors.textSecondary : colors.textSecondary} size={14} opacity={0.6} />
+                            <Text style={[styles.heroMetaText, { color: isDark ? colors.textSecondary : colors.textSecondary, opacity: 0.7 }]}>{stats.totalCount} deudores activos</Text>
                         </View>
                     </View>
                 </StitchCard>
@@ -498,7 +499,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
         borderColor: colors.glassBorder,
-        backgroundColor: colors.card + '95',
+        backgroundColor: isDark ? colors.card : 'rgba(255, 255, 255, 0.95)',
     },
     itemHeader: {
         flexDirection: 'row',
@@ -659,6 +660,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         padding: 20,
     },
     modalContent: {
+        backgroundColor: isDark ? colors.card : 'rgba(255, 255, 255, 0.98)',
         borderRadius: 32,
         padding: 24,
     },

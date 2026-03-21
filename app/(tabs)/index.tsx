@@ -799,10 +799,10 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     padding: 20,
   },
   modalContent: {
+    backgroundColor: isDark ? colors.card : 'rgba(255, 255, 255, 0.98)',
     borderRadius: 36,
     padding: 24,
     maxHeight: '85%',
-    backgroundColor: isDark ? colors.card : 'rgba(255, 255, 255, 0.90)',
   },
   modalHeader: {
     flexDirection: 'row',
