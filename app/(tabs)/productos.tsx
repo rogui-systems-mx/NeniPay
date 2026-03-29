@@ -87,12 +87,13 @@ export default function ProductosScreen() {
 
         setUploading(true);
         try {
-            let remoteUrl = undefined;
-            if (productImage) {
-                remoteUrl = await uploadImage(productImage, 'products') || undefined;
+            let finalImage = productImage;
+            if (productImage && !productImage.startsWith('http')) {
+                const uploadedUrl = await uploadImage(productImage, 'products');
+                if (uploadedUrl) finalImage = uploadedUrl;
             }
 
-            addProduct(productName.trim(), price, stock, productDescription.trim(), undefined, remoteUrl);
+            addProduct(productName.trim(), price, stock, productDescription.trim(), undefined, finalImage || undefined);
             setModalVisible(false);
             resetFields();
         } catch (error) {
@@ -125,12 +126,13 @@ export default function ProductosScreen() {
         if (selectedProduct) {
             setUploading(true);
             try {
-                let remoteUrl = productImage;
+                let finalImage = productImage;
                 if (productImage && !productImage.startsWith('http')) {
-                    remoteUrl = await uploadImage(productImage, 'products') || null;
+                    const uploadedUrl = await uploadImage(productImage, 'products');
+                    if (uploadedUrl) finalImage = uploadedUrl;
                 }
 
-                updateProduct(selectedProduct.id, productName.trim(), price, stock, productDescription.trim(), undefined, remoteUrl || undefined);
+                updateProduct(selectedProduct.id, productName.trim(), price, stock, productDescription.trim(), undefined, finalImage || undefined);
                 setEditModalVisible(false);
                 resetFields();
             } catch (error) {

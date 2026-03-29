@@ -51,16 +51,17 @@ export default function NuevoClienteScreen() {
         
         setUploading(true);
         try {
-            let remoteUrl = undefined;
-            if (image) {
-                remoteUrl = await uploadImage(image, 'clients') || undefined;
+            let finalImage = image;
+            if (image && !image.startsWith('http')) {
+                const uploadedUrl = await uploadImage(image, 'avatars');
+                if (uploadedUrl) finalImage = uploadedUrl;
             }
 
             const newId = addClient(
                 name.trim(), 
                 phone.trim() || undefined, 
                 location.trim() || undefined,
-                remoteUrl
+                finalImage || undefined
             );
             router.replace(`/cliente/${newId}`);
         } catch (error) {

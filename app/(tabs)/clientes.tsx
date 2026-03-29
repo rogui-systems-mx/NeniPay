@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
-    Search, UserPlus, Users, X, ChevronRight, Phone, MapPin, MoreVertical
+    Search, UserPlus, Users, X, ChevronRight, Phone, MapPin, MoreVertical, Plus
 } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import {
@@ -32,36 +32,36 @@ export default function ClientesScreen() {
 
     const renderHeader = () => (
         <View style={styles.header}>
-            <View>
-                <Text style={styles.headerTitle}>Mis Clientes</Text>
-                <Text style={styles.headerSubtitle}>{clients.length} TOTALES</Text>
+            <View style={styles.headerTop}>
+                <View>
+                    <Text style={styles.title}>Mis Clientes</Text>
+                    <Text style={styles.subtitle}>{clients.length} CLIENTES REGISTRADOS</Text>
+                </View>
+                <StitchPressable 
+                    onPress={() => router.push('/cliente/nuevo')}
+                    style={styles.headerActionBtn}
+                >
+                    <Plus color={colors.primary} size={28} />
+                </StitchPressable>
             </View>
-            <StitchPressable 
-                style={styles.addBtn}
-                onPress={() => router.push('/cliente/nuevo')}
-            >
-                <UserPlus color="#fff" size={20} />
-            </StitchPressable>
-        </View>
-    );
 
-    const renderSearchBar = () => (
-        <View style={styles.searchContainer}>
-            <StitchCard style={styles.searchBar} intensity={15}>
-                <Search color={colors.textSecondary} size={20} />
-                <TextInput
-                    placeholder="Buscar por nombre o teléfono..."
-                    placeholderTextColor={colors.textSecondary}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    style={styles.searchInput}
-                />
-                {searchQuery.length > 0 && (
-                    <TouchableOpacity onPress={() => setSearchQuery('')}>
-                        <X color={colors.textSecondary} size={18} />
-                    </TouchableOpacity>
-                )}
-            </StitchCard>
+            <View style={styles.searchContainer}>
+                <StitchCard intensity={30} style={styles.searchWrapper}>
+                    <Search color={colors.textSecondary} size={20} style={styles.searchIcon} />
+                    <TextInput
+                        placeholder="Buscar por nombre o teléfono..."
+                        placeholderTextColor={colors.textSecondary}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        style={styles.searchInput}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <X color={colors.textSecondary} size={20} />
+                        </TouchableOpacity>
+                    )}
+                </StitchCard>
+            </View>
         </View>
     );
 
@@ -135,7 +135,6 @@ export default function ClientesScreen() {
             </View>
 
             {renderHeader()}
-            {renderSearchBar()}
 
             <FlatList
                 data={filteredClients}
@@ -184,53 +183,59 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     header: {
         paddingHorizontal: 24,
         paddingTop: Platform.OS === 'android' ? 52 : 12,
-        paddingBottom: 20,
+        paddingBottom: 24,
+    },
+    headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 24,
     },
-    headerTitle: {
-        fontSize: 28,
-        fontFamily: 'Manrope_800ExtraBold',
+    title: {
         color: colors.text,
+        fontSize: 34,
+        fontFamily: 'Manrope_800ExtraBold',
+        letterSpacing: -1.2,
     },
-    headerSubtitle: {
+    subtitle: {
+        color: colors.textSecondary,
         fontSize: 10,
         fontFamily: 'Manrope_800ExtraBold',
-        color: colors.textSecondary,
         letterSpacing: 2,
+        textTransform: 'uppercase',
         opacity: 0.6,
     },
-    addBtn: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
-        backgroundColor: colors.primary,
+    headerActionBtn: {
+        width: 52,
+        height: 52,
+        borderRadius: 18,
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
     },
     searchContainer: {
-        paddingHorizontal: 20,
-        marginBottom: 20,
+        marginTop: 4,
     },
-    searchBar: {
+    searchWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        borderRadius: 18,
-        gap: 12,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+    },
+    searchIcon: {
+        marginRight: 10,
+        opacity: 0.5,
     },
     searchInput: {
         flex: 1,
         color: colors.text,
         fontFamily: 'Manrope_600SemiBold',
-        fontSize: 15,
+        fontSize: 16,
     },
     listContent: {
         paddingHorizontal: 20,

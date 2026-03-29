@@ -601,7 +601,7 @@ export default function ClienteDetailScreen() {
                                         <View style={styles.productSelectionContainer}>
                                             <Text style={styles.inputLabel}>Seleccionar del Catálogo</Text>
                                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScrollLarge}>
-                                                {products.map(p => {
+                                                {products.filter(p => (p.stock || 0) > 0).map(p => {
                                                     const quantity = cart[p.id] || 0;
                                                     return (
                                                         <TouchableOpacity
@@ -655,6 +655,13 @@ export default function ClienteDetailScreen() {
                                                         if (!prod) return null;
                                                         return (
                                                             <View key={prodId} style={styles.cartItemElegant}>
+                                                                {prod.image ? (
+                                                                    <Image source={{ uri: prod.image }} style={styles.cartItemImage} />
+                                                                ) : (
+                                                                    <View style={[styles.cartItemImage, { backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center' }]}>
+                                                                        <ShoppingCart size={16} color={colors.primary} />
+                                                                    </View>
+                                                                )}
                                                                 <View style={styles.cartItemIdentity}>
                                                                     <Text style={styles.cartItemNameElegant}>{prod.name}</Text>
                                                                     <Text style={styles.cartItemPriceElegant}>${prod.price.toLocaleString()} c/u</Text>
@@ -692,6 +699,9 @@ export default function ClienteDetailScreen() {
                                                     })}
                                                     {manualItems.map((item, index) => (
                                                         <View key={`manual-${index}`} style={styles.cartItemElegant}>
+                                                            <View style={[styles.cartItemImage, { backgroundColor: colors.textSecondary + '15', alignItems: 'center', justifyContent: 'center' }]}>
+                                                                <ShoppingCart size={16} color={colors.textSecondary} />
+                                                            </View>
                                                             <View style={styles.cartItemIdentity}>
                                                                 <Text style={styles.cartItemNameElegant}>{item.productName} (Personalizado)</Text>
                                                                 <Text style={styles.cartItemPriceElegant}>${item.priceAtSale.toLocaleString()} c/u</Text>
@@ -793,7 +803,7 @@ export default function ClienteDetailScreen() {
                                         </View>
 
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScrollLarge}>
-                                            {products.length > 0 ? products.map(p => {
+                                            {products.length > 0 ? products.filter(p => (p.stock || 0) > 0 || editCart[p.id]).map(p => {
                                                 const quantity = editCart[p.id] || 0;
                                                 return (
                                                     <StitchPressable
@@ -858,6 +868,13 @@ export default function ClienteDetailScreen() {
                                                     if (!prod) return null;
                                                     return (
                                                         <View key={prodId} style={styles.cartItemElegant}>
+                                                            {prod.image ? (
+                                                                <Image source={{ uri: prod.image }} style={styles.cartItemImage} />
+                                                            ) : (
+                                                                <View style={[styles.cartItemImage, { backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center' }]}>
+                                                                    <ShoppingCart size={16} color={colors.primary} />
+                                                                </View>
+                                                            )}
                                                             <View style={styles.cartItemIdentity}>
                                                                 <Text style={styles.cartItemNameElegant}>{prod.name}</Text>
                                                                 <Text style={styles.cartItemPriceElegant}>${prod.price.toLocaleString()} c/u</Text>
@@ -896,6 +913,9 @@ export default function ClienteDetailScreen() {
 
                                                 {editManualItems.map((item, index) => (
                                                     <View key={`manual-edit-${index}`} style={styles.cartItemElegant}>
+                                                        <View style={[styles.cartItemImage, { backgroundColor: colors.textSecondary + '15', alignItems: 'center', justifyContent: 'center' }]}>
+                                                            <ShoppingCart size={16} color={colors.textSecondary} />
+                                                        </View>
                                                         <View style={styles.cartItemIdentity}>
                                                             <Text style={styles.cartItemNameElegant}>{item.productName} (Custom)</Text>
                                                             <Text style={styles.cartItemPriceElegant}>${item.priceAtSale.toLocaleString()} c/u</Text>
@@ -1738,6 +1758,12 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: colors.glassBorder,
+    },
+    cartItemImage: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        marginRight: 12,
     },
     cartItemIdentity: {
         flex: 1,

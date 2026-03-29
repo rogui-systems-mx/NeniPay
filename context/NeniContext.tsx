@@ -147,12 +147,11 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Helper to persist changes
     const sanitizeClientsData = (clientsList: Client[]) => {
         return clientsList.map(c => {
-            const persistImage = (c.image?.startsWith('http') || c.image?.startsWith('https')) ? c.image : null;
             return {
                 ...c,
                 phone: c.phone ?? null,
                 location: c.location ?? null,
-                image: persistImage,
+                image: c.image ?? null,
                 avatar: c.avatar ?? null,
                 transactions: (c.transactions || []).map(t => ({
                     ...t,

@@ -384,8 +384,12 @@ export default function DashboardScreen() {
                   }}
                   style={styles.clientItem}
                 >
-                  <View style={styles.clientAvatar}>
-                    <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
+                  <View style={[styles.clientAvatar, { overflow: 'hidden' }]}>
+                    {item.image ? (
+                        <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} />
+                    ) : (
+                        <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
+                    )}
                   </View>
                   <View style={styles.clientInfo}>
                     <Text style={styles.clientName}>{item.name}</Text>
@@ -458,9 +462,13 @@ export default function DashboardScreen() {
                         >
                           <LinearGradient
                             colors={colors.gradientPrimary as any}
-                            style={styles.resultAvatar}
+                            style={[styles.resultAvatar, { overflow: 'hidden' }]}
                           >
-                            <Text style={{ color: '#FFFFFF', fontFamily: 'Manrope_800ExtraBold' }}>{item.name.charAt(0).toUpperCase()}</Text>
+                            {item.image ? (
+                                <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} />
+                            ) : (
+                                <Text style={{ color: '#FFFFFF', fontFamily: 'Manrope_800ExtraBold' }}>{item.name.charAt(0).toUpperCase()}</Text>
+                            )}
                           </LinearGradient>
                           <View style={{ flex: 1 }}>
                             <Text style={styles.resultName}>{item.name}</Text>

@@ -213,8 +213,12 @@ export default function PendientesScreen() {
                             <ScrollView showsVerticalScrollIndicator={false}>
                                 <View style={styles.clientInfoModal}>
                                     <View style={styles.clientModalHeader}>
-                                        <LinearGradient colors={colors.gradientPrimary as any} style={styles.modalAvatar}>
-                                            <Text style={styles.modalAvatarText}>{getInitial(selectedClient.name)}</Text>
+                                        <LinearGradient colors={colors.gradientPrimary as any} style={[styles.modalAvatar, { overflow: 'hidden' }]}>
+                                            {selectedClient.image ? (
+                                                <Image source={{ uri: selectedClient.image }} style={{ width: '100%', height: '100%' }} />
+                                            ) : (
+                                                <Text style={styles.modalAvatarText}>{getInitial(selectedClient.name)}</Text>
+                                            )}
                                         </LinearGradient>
                                         <View>
                                             <Text style={styles.clientLabel}>CLIENTE</Text>
@@ -293,7 +297,11 @@ export default function PendientesScreen() {
                                         colors={colors.gradientPrimary as any}
                                         style={styles.avatarGradient}
                                     >
-                                        <Text style={styles.avatarText}>{getInitial(item.name)}</Text>
+                                        {item.image ? (
+                                            <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} />
+                                        ) : (
+                                            <Text style={styles.avatarText}>{getInitial(item.name)}</Text>
+                                        )}
                                     </LinearGradient>
                                 </View>
 
