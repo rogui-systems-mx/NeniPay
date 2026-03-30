@@ -2,7 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     Edit2, Package, Plus, Search, Trash2, X,
-    ArrowUpRight, ShoppingBag, LayoutGrid, Info, Camera
+    ArrowUpRight, ShoppingBag, LayoutGrid, Info, Camera, FileText, Share2
 } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import {
@@ -19,10 +19,13 @@ import { useTheme } from '../../context/ThemeContext';
 import { useProductStore } from '../../hooks/useProductStore';
 import { Product } from '../../hooks/useProductStore.types';
 import { uploadImage } from '../../utils/firebase';
+import { generateCatalogPDF } from '../../utils/pdfGenerator';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ProductosScreen() {
     const { products, loading, addProduct, updateProduct, deleteProduct } = useProductStore();
     const { colors, isDark } = useTheme();
+    const { businessName } = useAuth();
     const styles = getStyles(colors, isDark);
 
     const [modalVisible, setModalVisible] = useState(false);
@@ -46,6 +49,18 @@ export default function ProductosScreen() {
             (p.description && p.description.toLowerCase().includes(query))
         );
     }, [products, searchQuery]);
+
+    const handleShareCatalog = async () => {
+        if (products.length === 0) {
+            return Alert.alert('Catálogo Vacío', 'Agrega productos antes de compartir el catálogo.');
+        }
+        
+        try {
+            await generateCatalogPDF(products, businessName || 'Mi Negocio');
+        } catch (error) {
+            Alert.alert('Error', 'No se pudo generar el catálogo en PDF.');
+        }
+    };
 
     if (loading) return null;
 
@@ -181,12 +196,20 @@ export default function ProductosScreen() {
                         <Text style={styles.title}>Catálogo</Text>
                         <Text style={styles.subtitle}>{products.length} PRODUCTOS REGISTRADOS</Text>
                     </View>
-                    <StitchPressable
-                        onPress={() => { setModalVisible(true); resetFields(); }}
-                        style={styles.headerActionBtn}
-                    >
-                        <Plus color={colors.primary} size={28} />
-                    </StitchPressable>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <StitchPressable
+                            onPress={handleShareCatalog}
+                            style={styles.headerActionBtn}
+                        >
+                            <Share2 color={colors.primary} size={24} />
+                        </StitchPressable>
+                        <StitchPressable
+                            onPress={() => { setModalVisible(true); resetFields(); }}
+                            style={styles.headerActionBtn}
+                        >
+                            <Plus color={colors.primary} size={28} />
+                        </StitchPressable>
+                    </View>
                 </View>
 
                 <View style={styles.searchContainer}>
@@ -194,7 +217,7 @@ export default function ProductosScreen() {
                         <Search color={colors.textSecondary} size={20} style={styles.searchIcon} />
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Buscar productos..."
+                            placeholder="Buscar por nombre o descripción..."
                             placeholderTextColor={colors.textSecondary}
                             value={searchQuery}
                             onChangeText={setSearchQuery}
