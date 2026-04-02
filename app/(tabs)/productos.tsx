@@ -93,6 +93,10 @@ export default function ProductosScreen() {
         if (products.length === 0) {
             return Alert.alert('Catálogo Vacío', 'Agrega productos antes de compartir el catálogo.');
         }
+
+        if (filteredProducts.length === 0) {
+            return Alert.alert('Sin Resultados', 'No hay productos que coincidan con el filtro actual para generar el catálogo.');
+        }
         
         try {
             await generateCatalogPDF(filteredProducts, businessName || 'Mi Negocio');

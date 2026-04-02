@@ -1,8 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, CircleDollarSign, Edit2, FileText, MoreVertical, Plus, ShoppingCart, Trash2, X, Wallet, MessageCircle } from 'lucide-react-native';
+import { ChevronLeft, CircleDollarSign, Edit2, FileText, MoreVertical, Plus, ShoppingCart, Trash2, X, Wallet, MessageCircle, Search } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, TextInput } from 'react-native';
 // @ts-ignore - No types available for this package
 import MaskedView from '@react-native-masked-view/masked-view';
 import * as ImagePicker from 'expo-image-picker';
@@ -34,6 +34,7 @@ export default function ClienteDetailScreen() {
     const styles = getStyles(colors, isDark);
 
     const [modalVisible, setModalVisible] = useState(false);
+    const [productSearchQuery, setProductSearchQuery] = useState('');
     const [editTransactionModalVisible, setEditTransactionModalVisible] = useState(false);
     const [deleteTransactionDialogVisible, setDeleteTransactionDialogVisible] = useState(false);
     const [deleteClientDialogVisible, setDeleteClientDialogVisible] = useState(false);
@@ -608,12 +609,40 @@ export default function ClienteDetailScreen() {
                                     </TouchableOpacity>
                                 </View>
 
-                                <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScroll}>
+                                <ScrollView 
+                                    showsVerticalScrollIndicator={false} 
+                                    style={styles.modalScroll} 
+                                    keyboardShouldPersistTaps="handled"
+                                    contentContainerStyle={{ paddingBottom: 60 }}
+                                >
                                     {modalType === 'sale' && (
                                         <View style={styles.productSelectionContainer}>
-                                            <Text style={styles.inputLabel}>Seleccionar del Catálogo</Text>
+                                            <View style={styles.modalSectionHeader}>
+                                                <Text style={styles.inputLabel}>Seleccionar del Catálogo</Text>
+                                                <View style={styles.modalSearchMini}>
+                                                    <Search size={14} color={colors.textSecondary} />
+                                                    <TextInput
+                                                        placeholder="Buscar productos..."
+                                                        placeholderTextColor={colors.textSecondary + '80'}
+                                                        value={productSearchQuery}
+                                                        onChangeText={setProductSearchQuery}
+                                                        style={styles.modalSearchInputMini}
+                                                    />
+                                                    {productSearchQuery !== '' && (
+                                                        <TouchableOpacity onPress={() => setProductSearchQuery('')}>
+                                                            <X size={14} color={colors.textSecondary} />
+                                                        </TouchableOpacity>
+                                                    )}
+                                                </View>
+                                            </View>
                                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScrollLarge}>
-                                                {products.filter(p => (p.stock || 0) > 0).map(p => {
+                                                {products
+                                                    .filter(p => (p.stock || 0) > 0)
+                                                    .filter(p => 
+                                                        p.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+                                                        (p.description && p.description.toLowerCase().includes(productSearchQuery.toLowerCase()))
+                                                    )
+                                                    .map(p => {
                                                     const quantity = cart[p.id] || 0;
                                                     return (
                                                         <TouchableOpacity
@@ -715,7 +744,7 @@ export default function ClienteDetailScreen() {
                                                                 <ShoppingCart size={16} color={colors.textSecondary} />
                                                             </View>
                                                             <View style={styles.cartItemIdentity}>
-                                                                <Text style={styles.cartItemNameElegant}>{item.productName} (Personalizado)</Text>
+                                                                <Text style={styles.cartItemNameElegant}>{item.productName}</Text>
                                                                 <Text style={styles.cartItemPriceElegant}>${item.priceAtSale.toLocaleString()} c/u</Text>
                                                             </View>
                                                             <View style={styles.cartItemActions}>
@@ -749,11 +778,12 @@ export default function ClienteDetailScreen() {
                                     />
 
                                     <StitchInput
-                                        label="Descripción / Nota"
+                                        label={modalType === 'sale' ? "Descripción de la Venta" : "Nota del Abono"}
                                         value={description}
                                         onChangeText={setDescription}
-                                        placeholder="Ej. Pago semanal"
+                                        placeholder={modalType === 'sale' ? "Ej. Venta de productos variados" : "Ej. Abono semanal"}
                                         isDark={isDark}
+                                        editable={modalType !== 'sale' || (Object.keys(cart).length === 0 && manualItems.length === 0)}
                                     />
 
                                     {client.phone && (
@@ -1872,5 +1902,31 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     },
     removeManualBtn: {
         padding: 4,
+    },
+    modalSectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+        paddingRight: 8,
+    },
+    modalSearchMini: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.glass,
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        height: 36,
+        width: 160,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+    },
+    modalSearchInputMini: {
+        flex: 1,
+        fontSize: 13,
+        color: colors.text,
+        marginLeft: 6,
+        padding: 0,
+        fontFamily: 'Manrope_600SemiBold',
     },
 });

@@ -1,7 +1,16 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import { Product } from '../hooks/useProductStore.types';
+
+const escapeHtml = (unsafe: string) => {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+};
 
 const getImageBase64 = async (uri: string): Promise<string | null> => {
     try {
@@ -10,7 +19,7 @@ const getImageBase64 = async (uri: string): Promise<string | null> => {
         
         // If it's a local file, read it as base64
         const base64 = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
+            encoding: 'base64',
         });
         
         // Determine mime type (fallback to jpeg)
@@ -28,6 +37,8 @@ export const generateCatalogPDF = async (products: Product[], businessName: stri
     // Pre-process images to base64
     const processedProducts = await Promise.all(products.map(async (p) => ({
         ...p,
+        name: escapeHtml(p.name),
+        description: p.description ? escapeHtml(p.description) : '',
         imageBase64: p.image ? await getImageBase64(p.image) : null
     })));
 
@@ -164,7 +175,11 @@ export const generateCatalogPDF = async (products: Product[], businessName: stri
     `;
 
     try {
-        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+        const { uri } = await Print.printToFileAsync({ 
+            html: htmlContent,
+            width: 595, // A4 width in points
+            height: 842 // A4 height in points
+        });
         await Sharing.shareAsync(uri, {
             mimeType: 'application/pdf',
             dialogTitle: `Catálogo - ${businessName}`,

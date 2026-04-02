@@ -617,7 +617,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginRight: 10,
+    marginRight: 8,
+    overflow: 'hidden',
   },
   profileImageContainer: {
     width: 54,
@@ -640,7 +641,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   greetingContainer: {
     flex: 1,
     justifyContent: 'center',
-    marginRight: 4,
+    marginRight: 2,
   },
   welcomeBack: {
     fontSize: 10,
@@ -653,14 +654,13 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontFamily: 'Manrope_800ExtraBold',
     color: colors.text,
     lineHeight: 22,
-    flexShrink: 1,
   },
   headerRight: {
     flexDirection: 'row',
     gap: 10,
     flexShrink: 0,
-    width: 100,
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   headerIconBtn: {
     width: 44,
