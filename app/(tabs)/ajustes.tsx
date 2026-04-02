@@ -521,14 +521,14 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         marginBottom: 32,
     },
     profileCard: {
-        height: 120,
+        minHeight: 120,
         borderRadius: 32,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: colors.glassBorder,
+        paddingVertical: 16,
     },
     profileContent: {
-        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 20,
@@ -574,6 +574,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         fontSize: 18,
         fontFamily: 'Manrope_800ExtraBold',
         marginBottom: 2,
+        lineHeight: 22,
     },
     profileMeta: {
         color: 'rgba(255,255,255,0.6)',
