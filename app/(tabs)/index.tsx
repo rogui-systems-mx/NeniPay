@@ -183,7 +183,13 @@ export default function DashboardScreen() {
         </View>
         <View style={styles.greetingContainer}>
           <Text style={styles.welcomeBack}>BIENVENIDO</Text>
-          <Text style={styles.adminName}>{businessName || user?.displayName || 'Admin'}</Text>
+          <Text 
+            style={styles.adminName} 
+            numberOfLines={1} 
+            ellipsizeMode="tail"
+          >
+            {businessName || user?.displayName || 'Admin'}
+          </Text>
         </View>
       </View>
       <View style={styles.headerRight}>
@@ -630,6 +636,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderColor: colors.background,
   },
   greetingContainer: {
+    flex: 1,
     justifyContent: 'center',
   },
   welcomeBack: {

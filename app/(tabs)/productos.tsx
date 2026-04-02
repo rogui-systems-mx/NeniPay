@@ -40,15 +40,42 @@ export default function ProductosScreen() {
     const [productImage, setProductImage] = useState<string | null>(null);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [uploading, setUploading] = useState(false);
+    const [sortBy, setSortBy] = useState<'name' | 'price_asc' | 'price_desc' | 'stock_asc' | 'stock_desc' | 'date_asc' | 'date_desc'>('date_desc');
+    const [onlyWithStock, setOnlyWithStock] = useState(false);
+    const [showSortOptions, setShowSortOptions] = useState(false);
 
     const filteredProducts = useMemo(() => {
-        if (!searchQuery.trim()) return products;
-        const query = searchQuery.toLowerCase();
-        return products.filter(p =>
-            p.name.toLowerCase().includes(query) ||
-            (p.description && p.description.toLowerCase().includes(query))
-        );
-    }, [products, searchQuery]);
+        let result = [...products];
+        
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            result = result.filter(p =>
+                p.name.toLowerCase().includes(query) ||
+                (p.description && p.description.toLowerCase().includes(query))
+            );
+        }
+
+        if (onlyWithStock) {
+            result = result.filter(p => (p.stock || 0) > 0);
+        }
+
+        // Apply Sorting
+        result.sort((a, b) => {
+            switch (sortBy) {
+                case 'price_asc': return a.price - b.price;
+                case 'price_desc': return b.price - a.price;
+                case 'stock_asc': return (a.stock || 0) - (b.stock || 0);
+                case 'stock_desc': return (b.stock || 0) - (a.stock || 0);
+                case 'date_asc': 
+                    return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+                case 'date_desc': 
+                    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+                default: return a.name.localeCompare(b.name);
+            }
+        });
+
+        return result;
+    }, [products, searchQuery, sortBy, onlyWithStock]);
 
     const handleShareCatalog = async () => {
         if (products.length === 0) {
@@ -56,7 +83,7 @@ export default function ProductosScreen() {
         }
         
         try {
-            await generateCatalogPDF(products, businessName || 'Mi Negocio');
+            await generateCatalogPDF(filteredProducts, businessName || 'Mi Negocio');
         } catch (error) {
             Alert.alert('Error', 'No se pudo generar el catálogo en PDF.');
         }
@@ -217,7 +244,7 @@ export default function ProductosScreen() {
                         <Search color={colors.textSecondary} size={20} style={styles.searchIcon} />
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Buscar por nombre o descripción..."
+                            placeholder="Buscar productos..."
                             placeholderTextColor={colors.textSecondary}
                             value={searchQuery}
                             onChangeText={setSearchQuery}
@@ -227,8 +254,67 @@ export default function ProductosScreen() {
                                 <X color={colors.textSecondary} size={20} />
                             </TouchableOpacity>
                         )}
+                        <View style={styles.separator} />
+                        <TouchableOpacity onPress={() => setShowSortOptions(!showSortOptions)}>
+                            <LayoutGrid color={showSortOptions ? colors.primary : colors.textSecondary} size={20} />
+                        </TouchableOpacity>
                     </StitchCard>
                 </View>
+
+                {showSortOptions && (
+                    <View style={styles.sortContainer}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortScroll}>
+                            <TouchableOpacity 
+                                style={[styles.sortChip, sortBy === 'name' && styles.sortChipActive]} 
+                                onPress={() => setSortBy('name')}
+                            >
+                                <Text style={[styles.sortChipText, sortBy === 'name' && styles.sortChipTextActive]}>A-Z</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.sortChip, sortBy === 'price_asc' && styles.sortChipActive]} 
+                                onPress={() => setSortBy('price_asc')}
+                            >
+                                <Text style={[styles.sortChipText, sortBy === 'price_asc' && styles.sortChipTextActive]}>$ Menor</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.sortChip, sortBy === 'price_desc' && styles.sortChipActive]} 
+                                onPress={() => setSortBy('price_desc')}
+                            >
+                                <Text style={[styles.sortChipText, sortBy === 'price_desc' && styles.sortChipTextActive]}>$ Mayor</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.sortChip, sortBy === 'stock_asc' && styles.sortChipActive]} 
+                                onPress={() => setSortBy('stock_asc')}
+                            >
+                                <Text style={[styles.sortChipText, sortBy === 'stock_asc' && styles.sortChipTextActive]}>Stock ↑</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.sortChip, sortBy === 'stock_desc' && styles.sortChipActive]} 
+                                onPress={() => setSortBy('stock_desc')}
+                            >
+                                <Text style={[styles.sortChipText, sortBy === 'stock_desc' && styles.sortChipTextActive]}>Stock ↓</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.sortChip, onlyWithStock && styles.sortChipActive]} 
+                                onPress={() => setOnlyWithStock(!onlyWithStock)}
+                            >
+                                <Text style={[styles.sortChipText, onlyWithStock && styles.sortChipTextActive]}>Solo en Stock</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.sortChip, sortBy === 'date_desc' && styles.sortChipActive]} 
+                                onPress={() => setSortBy('date_desc')}
+                            >
+                                <Text style={[styles.sortChipText, sortBy === 'date_desc' && styles.sortChipTextActive]}>Recientes</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.sortChip, sortBy === 'date_asc' && styles.sortChipActive]} 
+                                onPress={() => setSortBy('date_asc')}
+                            >
+                                <Text style={[styles.sortChipText, sortBy === 'date_asc' && styles.sortChipTextActive]}>Antiguos</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                )}
             </View>
 
             <FlatList
@@ -474,6 +560,38 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         color: colors.text,
         fontFamily: 'Manrope_600SemiBold',
         fontSize: 16,
+    },
+    separator: {
+        width: 1,
+        height: 20,
+        backgroundColor: colors.glassBorder,
+        marginHorizontal: 12,
+    },
+    sortContainer: {
+        marginTop: 12,
+    },
+    sortScroll: {
+        gap: 8,
+    },
+    sortChip: {
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 12,
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+    },
+    sortChipActive: {
+        backgroundColor: colors.primary + '20',
+        borderColor: colors.primary,
+    },
+    sortChipText: {
+        fontSize: 12,
+        fontFamily: 'Manrope_700Bold',
+        color: colors.textSecondary,
+    },
+    sortChipTextActive: {
+        color: colors.primary,
     },
     list: {
         paddingHorizontal: 20,

@@ -6,6 +6,7 @@ export interface Product {
     stock?: number;
     category?: string;
     image?: string;
+    createdAt?: string;
 }
 
 export interface ProductStore {

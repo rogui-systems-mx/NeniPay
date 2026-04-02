@@ -105,16 +105,11 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     products: sanitizeProductsData(localProducts),
                     notificationsEnabled: localNotifications,
                     updatedAt: new Date().toISOString()
-                });
-            } else {
-                // Just initialize cloud doc
-                await setDoc(doc(db, 'users', userId), {
-                    clients: [],
-                    products: [],
-                    notificationsEnabled: false,
-                    updatedAt: new Date().toISOString()
                 }, { merge: true });
             }
+            // Optimization: If local is also empty, we don't 'initialize' with empty arrays 
+            // unless we are performing a specific 'first action'.
+            // This prevents accidental wipes if local storage was cleared by system.
         };
 
         loadData();
@@ -123,16 +118,16 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Local Persistence (Fallback/Cache)
     useEffect(() => {
-        if (!loading && !user) {
+        if (!loading) {
             saveToStorage({ clients });
         }
-    }, [clients, loading, user]);
+    }, [clients, loading]);
 
     useEffect(() => {
-        if (!loading && !user) {
+        if (!loading) {
             saveProductsToStorage({ products });
         }
-    }, [products, loading, user]);
+    }, [products, loading]);
 
     // Smart Notifications Sync
     useEffect(() => {
@@ -168,6 +163,7 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: p.description ?? '',
             category: p.category ?? null,
             image: p.image ?? null,
+            createdAt: p.createdAt ?? null,
         }));
     };
 
@@ -378,6 +374,7 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: description.trim(),
             category,
             image,
+            createdAt: new Date().toISOString(),
         };
         const updated = [newProduct, ...products];
         setProducts(updated);

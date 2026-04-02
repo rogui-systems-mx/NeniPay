@@ -1,8 +1,36 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Product } from '../hooks/useProductStore.types';
 
+const getImageBase64 = async (uri: string): Promise<string | null> => {
+    try {
+        if (!uri) return null;
+        if (uri.startsWith('data:')) return uri;
+        
+        // If it's a local file, read it as base64
+        const base64 = await FileSystem.readAsStringAsync(uri, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
+        
+        // Determine mime type (fallback to jpeg)
+        const ext = uri.split('.').pop()?.toLowerCase();
+        const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+        
+        return `data:${mimeType};base64,${base64}`;
+    } catch (error) {
+        console.warn('Error converting image to base64 for PDF:', error);
+        return null;
+    }
+};
+
 export const generateCatalogPDF = async (products: Product[], businessName: string) => {
+    // Pre-process images to base64
+    const processedProducts = await Promise.all(products.map(async (p) => ({
+        ...p,
+        imageBase64: p.image ? await getImageBase64(p.image) : null
+    })));
+
     const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -37,11 +65,11 @@ export const generateCatalogPDF = async (products: Product[], businessName: stri
           .product-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 2%; /* small gap between items */
+            gap: 2%;
             justify-content: flex-start;
           }
           .product-card {
-            width: 31%; /* 3 items per row approx */
+            width: 31%;
             border: 1px solid #e2e8f0;
             border-radius: 12px;
             padding: 10px;
@@ -88,7 +116,7 @@ export const generateCatalogPDF = async (products: Product[], businessName: stri
             font-size: 10px;
             color: #64748b;
             line-height: 1.3;
-            height: 2.6em; /* max 2 lines approx */
+            height: 2.6em;
             overflow: hidden;
           }
           .footer {
@@ -114,10 +142,10 @@ export const generateCatalogPDF = async (products: Product[], businessName: stri
         </div>
 
         <div class="product-grid">
-          ${products.map(product => `
+          ${processedProducts.map(product => `
             <div class="product-card">
-              ${product.image ? 
-                `<img src="${product.image}" class="product-image" />` : 
+              ${product.imageBase64 ? 
+                `<img src="${product.imageBase64}" class="product-image" />` : 
                 `<div class="product-placeholder">📦</div>`
               }
               <h2 class="product-name">${product.name}</h2>

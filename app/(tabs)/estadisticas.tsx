@@ -26,7 +26,7 @@ export default function EstadisticasScreen() {
     const styles = getStyles(colors, isDark);
 
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-    const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+    const [selectedMonth, setSelectedMonth] = useState<number | null>(new Date().getMonth());
     const [detailsModalVisible, setDetailsModalVisible] = useState(false);
     const [detailsType, setDetailsType] = useState<'sale' | 'payment' | 'all'>('all');
 
@@ -39,7 +39,10 @@ export default function EstadisticasScreen() {
         clients.forEach(client => {
             (client.transactions || []).forEach(t => {
                 const date = new Date(t.date);
-                if (date.getFullYear() === selectedYear && date.getMonth() === selectedMonth) {
+                const yearMatch = date.getFullYear() === selectedYear;
+                const monthMatch = selectedMonth === null || date.getMonth() === selectedMonth;
+                
+                if (yearMatch && monthMatch) {
                     all.push({ transaction: t, clientId: client.id });
                 }
             });
@@ -139,7 +142,15 @@ export default function EstadisticasScreen() {
                         ))}
                     </ScrollView>
 
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll} contentContainerStyle={{ paddingHorizontal: 24 }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll} contentContainerStyle={{ paddingHorizontal: 24, gap: 8 }}>
+                        <TouchableOpacity
+                            style={[styles.monthButton, selectedMonth === null && styles.monthButtonActive]}
+                            onPress={() => setSelectedMonth(null)}
+                        >
+                            <Text style={[styles.monthButtonText, selectedMonth === null && styles.monthButtonTextActive]}>
+                                TODO EL AÑO
+                            </Text>
+                        </TouchableOpacity>
                         {months.map((month, idx) => (
                             <TouchableOpacity
                                 key={month}
@@ -205,7 +216,7 @@ export default function EstadisticasScreen() {
 
                 <View style={styles.infoWrapper}>
                     <Text style={styles.infoText}>
-                        Resumen generado automáticamente basado en los registros de {months[selectedMonth]} {selectedYear}.
+                        Resumen generado automáticamente basado en los registros de {selectedMonth === null ? 'todo el' : months[selectedMonth]} {selectedYear}.
                     </Text>
                 </View>
             </ScrollView>
@@ -218,7 +229,7 @@ export default function EstadisticasScreen() {
                             <View>
                                 <Text style={styles.modalTitle}>Detalle</Text>
                                 <Text style={styles.modalSubtitle}>
-                                    {months[selectedMonth]} {selectedYear} • {detailsType.toUpperCase()}
+                                    {selectedMonth === null ? 'TODO EL AÑO' : months[selectedMonth]} {selectedYear} • {detailsType.toUpperCase()}
                                 </Text>
                             </View>
                             <TouchableOpacity onPress={() => setDetailsModalVisible(false)} style={styles.closeBtn}>

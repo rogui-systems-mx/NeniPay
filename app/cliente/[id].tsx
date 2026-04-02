@@ -576,6 +576,7 @@ export default function ClienteDetailScreen() {
                         />
                         <KeyboardAvoidingView
                             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
                             style={{ width: '100%' }}
                         >
                             <StitchCard
@@ -783,6 +784,7 @@ export default function ClienteDetailScreen() {
                     />
                     <KeyboardAvoidingView
                         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
                         style={{ width: '100%' }}
                     >
                         <View style={styles.modalContent}>
