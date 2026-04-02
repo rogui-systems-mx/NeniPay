@@ -185,7 +185,7 @@ export default function DashboardScreen() {
           <Text style={styles.welcomeBack}>BIENVENIDO</Text>
           <Text 
             style={styles.adminName} 
-            numberOfLines={1} 
+            numberOfLines={2} 
             ellipsizeMode="tail"
           >
             {businessName || user?.displayName || 'Admin'}
@@ -638,6 +638,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   greetingContainer: {
     flex: 1,
     justifyContent: 'center',
+    marginRight: 10,
   },
   welcomeBack: {
     fontSize: 10,
@@ -646,9 +647,10 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     letterSpacing: 1.5,
   },
   adminName: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: 'Manrope_800ExtraBold',
     color: colors.text,
+    lineHeight: 22,
   },
   headerRight: {
     flexDirection: 'row',
