@@ -7,7 +7,7 @@
       "ios",
       "web"
     ],
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "nenipay",
@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.roguisystems.nenipay",
-      "versionCode": 3,
+      "versionCode": 4,
       "permissions": [
         "INTERNET",
         "VIBRATE"

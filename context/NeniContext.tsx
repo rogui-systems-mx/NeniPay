@@ -113,7 +113,7 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     products: [],
                     notificationsEnabled: false,
                     updatedAt: new Date().toISOString()
-                });
+                }, { merge: true });
             }
         };
 
@@ -179,7 +179,7 @@ export const NeniProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 whatsappSaleTemplate: saleTemplate || whatsappSaleTemplate,
                 whatsappPaymentTemplate: paymentTemplate || whatsappPaymentTemplate,
                 updatedAt: new Date().toISOString()
-            });
+            }, { merge: true });
         }
     };
 
