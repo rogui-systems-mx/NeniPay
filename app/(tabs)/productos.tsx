@@ -99,7 +99,14 @@ export default function ProductosScreen() {
         }
         
         try {
-            await generateCatalogPDF(filteredProducts, businessName || 'Mi Negocio');
+            // Filter only products with stock > 0 for the catalog
+            const productsWithStock = filteredProducts.filter(p => (p.stock || 0) > 0);
+            
+            if (productsWithStock.length === 0) {
+                return Alert.alert('Sin Stock', 'No hay productos con existencia para generar el catálogo.');
+            }
+
+            await generateCatalogPDF(productsWithStock, businessName || 'Mi Negocio');
         } catch (error) {
             Alert.alert('Error', 'No se pudo generar el catálogo en PDF.');
         }

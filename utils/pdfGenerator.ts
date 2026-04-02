@@ -17,13 +17,30 @@ const getImageBase64 = async (uri: string): Promise<string | null> => {
         if (!uri) return null;
         if (uri.startsWith('data:')) return uri;
         
-        // If it's a local file, read it as base64
-        const base64 = await FileSystem.readAsStringAsync(uri, {
+        let localUri = uri;
+        let isTemp = false;
+
+        // If it's a remote URL, download it first
+        if (uri.startsWith('http')) {
+            const extension = uri.split('.').pop()?.split('?')[0] || 'jpg';
+            const cacheDir = (FileSystem as any).cacheDirectory || (FileSystem as any).documentDirectory;
+            localUri = `${cacheDir}pdf_temp_${Date.now()}.${extension}`;
+            await FileSystem.downloadAsync(uri, localUri);
+            isTemp = true;
+        }
+        
+        // Read the local file as base64
+        const base64 = await FileSystem.readAsStringAsync(localUri, {
             encoding: 'base64',
         });
         
+        // Cleanup temp file
+        if (isTemp) {
+            try { await FileSystem.deleteAsync(localUri); } catch (e) {}
+        }
+
         // Determine mime type (fallback to jpeg)
-        const ext = uri.split('.').pop()?.toLowerCase();
+        const ext = localUri.split('.').pop()?.toLowerCase();
         const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
         
         return `data:${mimeType};base64,${base64}`;
