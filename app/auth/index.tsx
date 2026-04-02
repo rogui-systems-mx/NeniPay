@@ -17,6 +17,7 @@ import { Eye, EyeOff, LogIn, Mail, Moon, Smartphone, Sun, User as UserIcon, X } 
 import React, { useState } from 'react';
 import {
     Alert,
+    Dimensions,
     Image,
     KeyboardAvoidingView,
     Modal,
@@ -33,6 +34,9 @@ import { StitchButton } from '../../components/StitchButton';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { auth } from '../../utils/firebase';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const IS_SMALL_DEVICE = SCREEN_HEIGHT < 700;
 
 export default function AuthScreen() {
     const { isConfigured, signInWithGoogle, updateProfileInfo } = useAuth();
@@ -424,7 +428,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     },
     header: {
         alignItems: 'center',
-        marginBottom: 32,
+        marginBottom: IS_SMALL_DEVICE ? 16 : 32,
         position: 'relative',
     },
     themeToggle: {
@@ -441,11 +445,11 @@ const getStyles = (colors: any) => StyleSheet.create({
         zIndex: 10,
     },
     logoContainer: {
-        width: 280,
-        height: 280,
+        width: IS_SMALL_DEVICE ? 160 : 280,
+        height: IS_SMALL_DEVICE ? 160 : 280,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: IS_SMALL_DEVICE ? 0 : 8,
     },
     logoImage: {
         width: '100%',
