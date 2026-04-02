@@ -138,7 +138,7 @@ export default function AjustesScreen() {
                 setLoading(true);
                 const downloadUrl = await uploadImage(result.assets[0].uri, `profiles/${user?.uid || 'local'}`);
                 await updateProfileInfo(user?.displayName ?? '', businessName ?? undefined, userPhone ?? undefined, downloadUrl ?? undefined);
-                Alert.alert('Éxito', 'Foto de perfil actualizada.');
+                Alert.alert('Éxito', 'Foto de perfil actualizada. (Nota: Esto no afectará tu foto de perfil de Google)');
             } catch (error) {
                 console.error('Upload error:', error);
                 Alert.alert('Error', 'No se pudo subir la imagen.');
@@ -402,7 +402,15 @@ export default function AjustesScreen() {
                                 {user && (
                                     <>
                                         <StitchInput label="CORREO" value={newEmail} onChangeText={setNewEmail} keyboardType="email-address" autoCapitalize="none" isDark={isDark} />
-                                        <StitchInput label="NUEVA CONTRASEÑA" value={newPassword} onChangeText={setNewPassword} secureTextEntry isDark={isDark} placeholder="••••••••" />
+                                        {user.providerData?.[0]?.providerId === 'password' && (
+                                            <StitchInput label="NUEVA CONTRASEÑA" value={newPassword} onChangeText={setNewPassword} secureTextEntry isDark={isDark} placeholder="••••••••" />
+                                        )}
+                                        {user.providerData?.[0]?.providerId === 'google.com' && (
+                                            <View style={styles.infoBoxCompact}>
+                                                <Info size={14} color={colors.primary} />
+                                                <Text style={styles.infoTextSmall}>Tu seguridad es gestionada por Google.</Text>
+                                            </View>
+                                        )}
                                     </>
                                 )}
                                 <StitchButton title={loading ? "GUARDANDO..." : "GUARDAR CAMBIOS"} onPress={handleUpdateProfile} loading={loading} style={{ marginTop: 20 }} />
@@ -658,6 +666,21 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         fontSize: 12,
         fontFamily: 'Manrope_600SemiBold',
         lineHeight: 18,
+    },
+    infoBoxCompact: {
+        backgroundColor: colors.primary + '10',
+        padding: 12,
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 4,
+        marginBottom: 16,
+    },
+    infoTextSmall: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontFamily: 'Manrope_600SemiBold',
     },
     bold: {
         fontFamily: 'Manrope_800ExtraBold',
