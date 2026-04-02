@@ -24,6 +24,20 @@ export default function NuevoProductoScreen() {
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [stock, setStock] = useState('');
+    
+    const handlePriceChange = (text: string) => {
+        if (/^\d*[.,]?\d{0,2}$/.test(text) || text === '') {
+            setPrice(text);
+        }
+    };
+
+    const handleStockChange = (text: string) => {
+        // Stock is usually whole numbers, but some neni might use weight. 
+        // Allowing 2 decimals to be safe as per user global request.
+        if (/^\d*[.,]?\d{0,2}$/.test(text) || text === '') {
+            setStock(text);
+        }
+    };
     const [description, setDescription] = useState('');
     const [image, setImage] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -118,9 +132,9 @@ export default function NuevoProductoScreen() {
                                 <StitchInput
                                     label="PRECIO ($)"
                                     value={price}
-                                    onChangeText={setPrice}
+                                    onChangeText={handlePriceChange}
                                     placeholder="0.00"
-                                    keyboardType="numeric"
+                                    keyboardType="decimal-pad"
                                     isDark={isDark}
                                 />
                             </View>
@@ -129,9 +143,9 @@ export default function NuevoProductoScreen() {
                                 <StitchInput
                                     label="STOCK INICIAL"
                                     value={stock}
-                                    onChangeText={setStock}
+                                    onChangeText={handleStockChange}
                                     placeholder="0"
-                                    keyboardType="numeric"
+                                    keyboardType="decimal-pad"
                                     isDark={isDark}
                                 />
                             </View>

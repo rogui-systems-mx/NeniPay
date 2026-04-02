@@ -31,6 +31,11 @@ export default function PendientesScreen() {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [paymentAmount, setPaymentAmount] = useState('');
+    const handlePaymentAmountChange = (text: string) => {
+        if (/^\d*[.,]?\d{0,2}$/.test(text) || text === '') {
+            setPaymentAmount(text);
+        }
+    };
     const [sortBy, setSortBy] = useState<'amount' | 'name' | 'days'>('days');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -236,9 +241,9 @@ export default function PendientesScreen() {
                                 <StitchInput
                                     label="Monto a Pagar ($)"
                                     value={paymentAmount}
-                                    onChangeText={setPaymentAmount}
+                                    onChangeText={handlePaymentAmountChange}
                                     placeholder="0.00"
-                                    keyboardType="numeric"
+                                    keyboardType="decimal-pad"
                                     isDark={isDark}
                                 />
 

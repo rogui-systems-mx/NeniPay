@@ -36,6 +36,18 @@ export default function ProductosScreen() {
     const [productName, setProductName] = useState('');
     const [productPrice, setProductPrice] = useState('');
     const [productStock, setProductStock] = useState('');
+    
+    const handleProductPriceChange = (text: string) => {
+        if (/^\d*[.,]?\d{0,2}$/.test(text) || text === '') {
+            setProductPrice(text);
+        }
+    };
+
+    const handleProductStockChange = (text: string) => {
+        if (/^\d*[.,]?\d{0,2}$/.test(text) || text === '') {
+            setProductStock(text);
+        }
+    };
     const [productDescription, setProductDescription] = useState('');
     const [productImage, setProductImage] = useState<string | null>(null);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -417,9 +429,9 @@ export default function ProductosScreen() {
 
                                 <StitchInput label="NOMBRE" value={productName} onChangeText={setProductName} placeholder="Ej. Labial Rojo" isDark={isDark} />
                                 <View style={styles.modalRow}>
-                                    <View style={{ flex: 1 }}><StitchInput label="PRECIO ($)" value={productPrice} onChangeText={setProductPrice} placeholder="0.00" keyboardType="numeric" isDark={isDark} /></View>
+                                    <View style={{ flex: 1 }}><StitchInput label="PRECIO ($)" value={productPrice} onChangeText={handleProductPriceChange} placeholder="0.00" keyboardType="decimal-pad" isDark={isDark} /></View>
                                     <View style={{ width: 12 }} />
-                                    <View style={{ flex: 1 }}><StitchInput label="STOCK" value={productStock} onChangeText={setProductStock} placeholder="0" keyboardType="numeric" isDark={isDark} /></View>
+                                    <View style={{ flex: 1 }}><StitchInput label="STOCK" value={productStock} onChangeText={handleProductStockChange} placeholder="0" keyboardType="decimal-pad" isDark={isDark} /></View>
                                 </View>
                                 <StitchInput label="DESCRIPCIÓN" value={productDescription} onChangeText={setProductDescription} placeholder="Ej. Catálogo Mayo" isDark={isDark} multiline />
 
@@ -457,9 +469,9 @@ export default function ProductosScreen() {
 
                                 <StitchInput label="NOMBRE" value={productName} onChangeText={setProductName} isDark={isDark} />
                                 <View style={styles.modalRow}>
-                                    <View style={{ flex: 1 }}><StitchInput label="PRECIO ($)" value={productPrice} onChangeText={setProductPrice} keyboardType="numeric" isDark={isDark} /></View>
+                                    <View style={{ flex: 1 }}><StitchInput label="PRECIO ($)" value={productPrice} onChangeText={handleProductPriceChange} keyboardType="decimal-pad" isDark={isDark} /></View>
                                     <View style={{ width: 12 }} />
-                                    <View style={{ flex: 1 }}><StitchInput label="STOCK" value={productStock} onChangeText={setProductStock} keyboardType="numeric" isDark={isDark} /></View>
+                                    <View style={{ flex: 1 }}><StitchInput label="STOCK" value={productStock} onChangeText={handleProductStockChange} keyboardType="decimal-pad" isDark={isDark} /></View>
                                 </View>
                                 <StitchInput label="DESCRIPCIÓN" value={productDescription} onChangeText={setProductDescription} isDark={isDark} multiline />
 

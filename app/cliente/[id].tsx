@@ -40,6 +40,12 @@ export default function ClienteDetailScreen() {
     const [editClientModalVisible, setEditClientModalVisible] = useState(false);
     const [modalType, setModalType] = useState<TransactionType>('sale');
     const [amount, setAmount] = useState('');
+    const handleAmountChange = (text: string) => {
+        // Allow only numbers and up to 2 decimals (dot or comma)
+        if (/^\d*[.,]?\d{0,2}$/.test(text) || text === '') {
+            setAmount(text);
+        }
+    };
     const [description, setDescription] = useState('');
     const [clientName, setClientName] = useState('');
     const [clientPhone, setClientPhone] = useState('');
@@ -58,6 +64,11 @@ export default function ClienteDetailScreen() {
     const [isEditingManual, setIsEditingManual] = useState(false);
     const [newManualName, setNewManualName] = useState('');
     const [newManualPrice, setNewManualPrice] = useState('');
+    const handleManualPriceChange = (text: string) => {
+        if (/^\d*[.,]?\d{0,2}$/.test(text) || text === '') {
+            setNewManualPrice(text);
+        }
+    };
     const [newManualQuantity, setNewManualQuantity] = useState('1');
 
     const client = getClientById(id);
@@ -143,7 +154,7 @@ export default function ClienteDetailScreen() {
         const manualTotals = currentManual.reduce((acc, curr) => acc + (curr.priceAtSale * curr.quantity), 0);
         const manualDesc = currentManual.map(item => item.productName).join(', ');
 
-        const totalAmount = cartItems.reduce((acc, curr) => acc + curr.total, 0) + manualTotals;
+        const totalAmount = Math.round((cartItems.reduce((acc, curr) => acc + curr.total, 0) + manualTotals) * 100) / 100;
         const catalogDesc = cartItems.map(item => item.name).join(', ');
 
         let finalDesc = catalogDesc;
@@ -730,9 +741,9 @@ export default function ClienteDetailScreen() {
                                     <StitchInput
                                         label={modalType === 'sale' ? "Monto Total ($)" : "Monto del Abono ($)"}
                                         value={amount}
-                                        onChangeText={setAmount}
+                                        onChangeText={handleAmountChange}
                                         placeholder="0.00"
-                                        keyboardType="numeric"
+                                        keyboardType="decimal-pad"
                                         isDark={isDark}
                                         editable={modalType !== 'sale' || (Object.keys(cart).length === 0 && manualItems.length === 0)}
                                     />
@@ -945,9 +956,9 @@ export default function ClienteDetailScreen() {
                                 <StitchInput
                                     label={selectedTransaction?.type === 'sale' ? "Monto Total Estimado ($)" : "Monto del Abono ($)"}
                                     value={amount}
-                                    onChangeText={setAmount}
+                                    onChangeText={handleAmountChange}
                                     placeholder="0.00"
-                                    keyboardType="numeric"
+                                    keyboardType="decimal-pad"
                                     isDark={isDark}
                                     editable={selectedTransaction?.type !== 'sale' || (Object.keys(editCart).length === 0 && editManualItems.length === 0)}
                                 />
@@ -1135,9 +1146,9 @@ export default function ClienteDetailScreen() {
                                         <StitchInput
                                             label="Precio ($)"
                                             value={newManualPrice}
-                                            onChangeText={setNewManualPrice}
+                                            onChangeText={handleManualPriceChange}
                                             placeholder="0.00"
-                                            keyboardType="numeric"
+                                            keyboardType="decimal-pad"
                                             isDark={isDark}
                                         />
                                     </View>
@@ -1147,7 +1158,7 @@ export default function ClienteDetailScreen() {
                                             value={newManualQuantity}
                                             onChangeText={setNewManualQuantity}
                                             placeholder="1"
-                                            keyboardType="numeric"
+                                            keyboardType="decimal-pad"
                                             isDark={isDark}
                                         />
                                     </View>

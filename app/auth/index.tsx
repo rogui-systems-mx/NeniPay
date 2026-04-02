@@ -36,7 +36,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { auth } from '../../utils/firebase';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const IS_SMALL_DEVICE = SCREEN_HEIGHT < 700;
+const IS_SMALL_DEVICE = SCREEN_HEIGHT < 800;
 
 export default function AuthScreen() {
     const { isConfigured, signInWithGoogle, updateProfileInfo } = useAuth();
