@@ -610,8 +610,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 20 : 5,
+    paddingHorizontal: 24, // Increased from 20
+    paddingTop: Platform.OS === 'android' ? 24 : 10,
     paddingBottom: 15,
     backgroundColor: 'transparent',
     zIndex: 10,
@@ -624,13 +624,13 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginRight: 8,
   },
   profileImageContainer: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 60, // Slightly larger
+    height: 60,
+    borderRadius: 30,
     padding: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8, // Protection for the glow
+    marginLeft: 10, // More protection for the glow
   },
   profileGlow: {
     ...StyleSheet.absoluteFillObject,
@@ -639,9 +639,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     transform: [{ scale: 1.1 }],
   },
   profileImage: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 2,
     borderColor: colors.background,
   },

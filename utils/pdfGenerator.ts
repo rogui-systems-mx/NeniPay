@@ -12,68 +12,51 @@ const escapeHtml = (unsafe: string) => {
         .replace(/'/g, "&#039;");
 };
 
-const getImageBase64 = async (uri: string): Promise<string | null> => {
+const getLocalImageUri = async (uri: string): Promise<string | null> => {
     if (!uri) return null;
     if (uri.startsWith('data:')) return uri;
-
-    let localUri = uri;
-    let isTemp = false;
-    let mimeType = 'image/jpeg'; // Default
 
     try {
         // If it's a remote URL, download it first
         if (uri.startsWith('http')) {
-            // Robust extension detection
             const cleanUrl = uri.split('?')[0];
             const extension = cleanUrl.split('.').pop()?.toLowerCase() || 'jpg';
-            mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
-            
             const cacheDir = (FileSystem as any).cacheDirectory || (FileSystem as any).documentDirectory;
-            localUri = `${cacheDir}pdf_temp_${Date.now()}.${extension}`;
+            const localPath = `${cacheDir}pdf_img_${Date.now()}_${Math.floor(Math.random() * 1000)}.${extension}`;
             
-            const downloadResult = await FileSystem.downloadAsync(uri, localUri);
+            const downloadResult = await FileSystem.downloadAsync(uri, localPath);
             if (downloadResult.status !== 200) {
                 console.warn(`Download failed for ${uri} with status ${downloadResult.status}`);
                 return null;
             }
-            isTemp = true;
-        } else {
-            // Local file - determine mime type
-            const ext = uri.split('.').pop()?.toLowerCase();
-            mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
-        }
-        
-        // Read the local file as base64
-        const base64 = await FileSystem.readAsStringAsync(localUri, {
-            encoding: 'base64',
-        });
-        
-        // Cleanup temp file
-        if (isTemp) {
-            try { await FileSystem.deleteAsync(localUri); } catch (e) {}
-        }
-
-        if (!base64) return null;
-        return `data:${mimeType};base64,${base64}`;
+            return localPath;
+        } 
+        return uri; // Local file already
     } catch (error) {
-        console.warn(`Error converting image to base64 for PDF (${uri}):`, error);
-        // Clean up temp file on error too
-        if (isTemp && localUri) {
-            try { await FileSystem.deleteAsync(localUri); } catch (e) {}
-        }
-        return null; // Return null so placeholder shows up instead of breaking PDF
+        console.warn(`Error processing image for PDF (${uri}):`, error);
+        return null;
     }
 };
 
 export const generateCatalogPDF = async (products: Product[], businessName: string) => {
     // Pre-process images sequentially to avoid memory/concurrency issues
+    // We collect local URIs and keep track of which were downloaded to clean them up later
     const processedProducts = [];
+    const tempFiles: string[] = [];
+    
     for (const p of products) {
+        const localUri = p.image ? await getLocalImageUri(p.image) : null;
+        
+        // If it was a downloaded temp file, register it for cleanup
+        if (localUri && localUri.includes('pdf_img_')) {
+            tempFiles.push(localUri);
+        }
+
         processedProducts.push({
             ...p,
             name: escapeHtml(p.name),
             description: p.description ? escapeHtml(p.description) : '',
-            imageBase64: p.image ? await getImageBase64(p.image) : null
+            localUri
         });
     }
 
@@ -190,8 +173,8 @@ export const generateCatalogPDF = async (products: Product[], businessName: stri
         <div class="product-grid">
           ${processedProducts.map(product => `
             <div class="product-card">
-              ${product.imageBase64 ? 
-                `<img src="${product.imageBase64}" class="product-image" />` : 
+              ${product.localUri ? 
+                `<img src="${product.localUri}" class="product-image" />` : 
                 `<div class="product-placeholder">📦</div>`
               }
               <h2 class="product-name">${product.name}</h2>
@@ -215,12 +198,22 @@ export const generateCatalogPDF = async (products: Product[], businessName: stri
             width: 595, // A4 width in points
             height: 842 // A4 height in points
         });
+
+        // Cleanup temp files AFTER printing
+        for (const file of tempFiles) {
+            try { await FileSystem.deleteAsync(file); } catch (e) {}
+        }
+
         await Sharing.shareAsync(uri, {
             mimeType: 'application/pdf',
             dialogTitle: `Catálogo - ${businessName}`,
             UTI: 'com.adobe.pdf'
         });
     } catch (error) {
+        // Cleanup on error too
+        for (const file of tempFiles) {
+            try { await FileSystem.deleteAsync(file); } catch (e) {}
+        }
         console.error('Error generating PDF:', error);
         throw error;
     }
