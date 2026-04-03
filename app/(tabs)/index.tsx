@@ -611,7 +611,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 12 : 5,
+    paddingTop: Platform.OS === 'android' ? 20 : 5,
     paddingBottom: 15,
     backgroundColor: 'transparent',
     zIndex: 10,
@@ -630,6 +630,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     padding: 2,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 8, // Protection for the glow
   },
   profileGlow: {
     ...StyleSheet.absoluteFillObject,

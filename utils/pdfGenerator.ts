@@ -13,20 +13,34 @@ const escapeHtml = (unsafe: string) => {
 };
 
 const getImageBase64 = async (uri: string): Promise<string | null> => {
-    try {
-        if (!uri) return null;
-        if (uri.startsWith('data:')) return uri;
-        
-        let localUri = uri;
-        let isTemp = false;
+    if (!uri) return null;
+    if (uri.startsWith('data:')) return uri;
 
+    let localUri = uri;
+    let isTemp = false;
+    let mimeType = 'image/jpeg'; // Default
+
+    try {
         // If it's a remote URL, download it first
         if (uri.startsWith('http')) {
-            const extension = uri.split('.').pop()?.split('?')[0] || 'jpg';
+            // Robust extension detection
+            const cleanUrl = uri.split('?')[0];
+            const extension = cleanUrl.split('.').pop()?.toLowerCase() || 'jpg';
+            mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
+            
             const cacheDir = (FileSystem as any).cacheDirectory || (FileSystem as any).documentDirectory;
             localUri = `${cacheDir}pdf_temp_${Date.now()}.${extension}`;
-            await FileSystem.downloadAsync(uri, localUri);
+            
+            const downloadResult = await FileSystem.downloadAsync(uri, localUri);
+            if (downloadResult.status !== 200) {
+                console.warn(`Download failed for ${uri} with status ${downloadResult.status}`);
+                return null;
+            }
             isTemp = true;
+        } else {
+            // Local file - determine mime type
+            const ext = uri.split('.').pop()?.toLowerCase();
+            mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
         }
         
         // Read the local file as base64
@@ -39,25 +53,29 @@ const getImageBase64 = async (uri: string): Promise<string | null> => {
             try { await FileSystem.deleteAsync(localUri); } catch (e) {}
         }
 
-        // Determine mime type (fallback to jpeg)
-        const ext = localUri.split('.').pop()?.toLowerCase();
-        const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
-        
+        if (!base64) return null;
         return `data:${mimeType};base64,${base64}`;
     } catch (error) {
-        console.warn('Error converting image to base64 for PDF:', error);
-        return null;
+        console.warn(`Error converting image to base64 for PDF (${uri}):`, error);
+        // Clean up temp file on error too
+        if (isTemp && localUri) {
+            try { await FileSystem.deleteAsync(localUri); } catch (e) {}
+        }
+        return null; // Return null so placeholder shows up instead of breaking PDF
     }
 };
 
 export const generateCatalogPDF = async (products: Product[], businessName: string) => {
-    // Pre-process images to base64
-    const processedProducts = await Promise.all(products.map(async (p) => ({
-        ...p,
-        name: escapeHtml(p.name),
-        description: p.description ? escapeHtml(p.description) : '',
-        imageBase64: p.image ? await getImageBase64(p.image) : null
-    })));
+    // Pre-process images sequentially to avoid memory/concurrency issues
+    const processedProducts = [];
+    for (const p of products) {
+        processedProducts.push({
+            ...p,
+            name: escapeHtml(p.name),
+            description: p.description ? escapeHtml(p.description) : '',
+            imageBase64: p.image ? await getImageBase64(p.image) : null
+        });
+    }
 
     const htmlContent = `
     <!DOCTYPE html>
