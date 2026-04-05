@@ -14,7 +14,7 @@ import {
     signInWithEmailAndPassword
 } from 'firebase/auth';
 import { Eye, EyeOff, LogIn, Mail, Moon, Smartphone, Sun, User as UserIcon, X } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     Alert,
     Dimensions,
@@ -40,9 +40,217 @@ const IS_SMALL_DEVICE = SCREEN_HEIGHT < 800;
 
 export default function AuthScreen() {
     const { isConfigured, signInWithGoogle, updateProfileInfo } = useAuth();
-    const { colors, isDark, toggleTheme } = useTheme();
-    const styles = getStyles(colors);
+    const theme = useTheme();
+    const { colors } = theme;
+    // Use an explicit ref-style name to survive minification issues on some platforms
+    const isDarkRef = theme.isDark;
+    const toggleTheme = theme.toggleTheme;
+    
     const router = useRouter();
+    
+    // styles as useMemo to ensure Reactivity and correct scoping
+    const styles = useMemo(() => {
+        const _isDark = isDarkRef;
+        return StyleSheet.create({
+            container: {
+                flex: 1,
+                backgroundColor: colors.background,
+            },
+            bgGlowWrapper: {
+                ...StyleSheet.absoluteFillObject,
+                overflow: 'hidden',
+                zIndex: -1,
+            },
+            glowSphere: {
+                position: 'absolute',
+                width: 350,
+                height: 350,
+                borderRadius: 175,
+                opacity: 0.5,
+            },
+            scrollContent: {
+                padding: 24,
+                paddingTop: Platform.OS === 'web' ? 60 : (Platform.OS === 'android' ? 60 : 32),
+                flexGrow: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+            },
+            cardContainer: {
+                width: '100%',
+                maxWidth: 480,
+                alignItems: 'center',
+                padding: Platform.OS === 'web' ? 40 : 20,
+                backgroundColor: Platform.OS === 'web' ? colors.card : 'transparent',
+                borderRadius: Platform.OS === 'web' ? 24 : 0,
+                ...Platform.select({
+                    web: {
+                        boxShadow: _isDark ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.08)',
+                        borderWidth: _isDark ? 1 : 0,
+                        borderColor: colors.border,
+                        marginVertical: 40,
+                    }
+                })
+            },
+            header: {
+                alignItems: 'center',
+                marginBottom: IS_SMALL_DEVICE ? 16 : 32,
+                position: 'relative',
+                width: '100%',
+            },
+            themeToggle: {
+                position: 'absolute',
+                top: -10,
+                right: -10,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                borderWidth: 1,
+                borderColor: colors.border,
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 10,
+            },
+            logoContainer: {
+                width: Platform.OS === 'web' ? 180 : (IS_SMALL_DEVICE ? 140 : 220),
+                height: Platform.OS === 'web' ? 180 : (IS_SMALL_DEVICE ? 140 : 220),
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: IS_SMALL_DEVICE ? 0 : 8,
+            },
+            logoImage: {
+                width: '100%',
+                height: '100%',
+            },
+            title: {
+                color: colors.text,
+                fontSize: 28,
+                fontWeight: '900',
+                textAlign: 'center',
+                fontFamily: 'Manrope_800ExtraBold',
+            },
+            subtitle: {
+                color: colors.textSecondary,
+                fontSize: 15,
+                textAlign: 'center',
+                marginTop: 8,
+                fontFamily: 'Manrope_400Regular',
+            },
+            form: {
+                width: '100%',
+            },
+            inputGroup: {
+                marginBottom: 20,
+            },
+            label: {
+                color: colors.text,
+                fontSize: 14,
+                fontWeight: '700',
+                marginBottom: 8,
+                fontFamily: 'Manrope_700Bold',
+            },
+            inputWrapper: {
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.card,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: colors.border,
+                paddingHorizontal: 16,
+            },
+            inputIcon: {
+                marginRight: 12,
+            },
+            input: {
+                flex: 1,
+                height: 56,
+                color: colors.text,
+                fontSize: 16,
+                fontFamily: 'Manrope_500Medium',
+            },
+            forgotText: {
+                color: colors.primary,
+                fontSize: 14,
+                fontWeight: '600',
+                textAlign: 'right',
+                marginBottom: 24,
+                fontFamily: 'Manrope_600SemiBold',
+            },
+            button: {
+                marginTop: 8,
+            },
+            switchContainer: {
+                marginTop: 24,
+                alignItems: 'center',
+            },
+            switchText: {
+                color: colors.textSecondary,
+                fontSize: 14,
+                fontWeight: '600',
+                fontFamily: 'Manrope_600SemiBold',
+            },
+            divider: {
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginVertical: 24,
+                width: '100%',
+            },
+            line: {
+                flex: 1,
+                height: 1,
+                backgroundColor: colors.border,
+            },
+            dividerText: {
+                color: colors.textSecondary,
+                paddingHorizontal: 16,
+                fontSize: 14,
+                fontWeight: '600',
+                fontFamily: 'Manrope_600SemiBold',
+            },
+            socialButtons: {
+                flexDirection: 'row',
+                gap: 12,
+                marginBottom: 8,
+                width: '100%',
+            },
+            socialButton: {
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 16,
+                height: 56,
+                gap: 12,
+            },
+            socialButtonText: {
+                color: colors.text,
+                fontSize: 16,
+                fontWeight: '600',
+                textAlign: 'center',
+                fontFamily: 'Manrope_600SemiBold',
+            },
+            modalOverlay: {
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+            },
+            modalContent: {
+                backgroundColor: _isDark ? colors.card : 'rgba(255, 255, 255, 0.98)',
+                padding: 24,
+                borderRadius: 28,
+                width: '90%',
+                maxWidth: 400,
+                elevation: 5,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.3,
+                shadowRadius: 20
+            }
+        });
+    }, [colors, isDarkRef]);
+
     const [isRegister, setIsRegister] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -102,7 +310,6 @@ export default function AuthScreen() {
 
                 const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPassword);
 
-                // Save profile info immediately
                 if (userCredential.user) {
                     await updateProfileInfo(displayName.trim(), phone.trim());
                 }
@@ -183,10 +390,8 @@ export default function AuthScreen() {
         }
     };
 
-
     return (
         <SafeAreaView style={styles.container}>
-            {/* Background Depth Effects */}
             <View style={styles.bgGlowWrapper} pointerEvents="none">
                 <LinearGradient
                     colors={[colors.bgGlow1, 'transparent']}
@@ -204,150 +409,148 @@ export default function AuthScreen() {
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 40}
             >
                 <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <View style={styles.header}>
-                        <TouchableOpacity
-                            style={styles.themeToggle}
-                            onPress={toggleTheme}
-                        >
-                            {isDark ? <Sun size={20} color={colors.primary} /> : <Moon size={20} color={colors.primary} />}
-                        </TouchableOpacity>
+                    <View style={styles.cardContainer}>
+                        <View style={styles.header}>
+                            <TouchableOpacity
+                                style={styles.themeToggle}
+                                onPress={toggleTheme}
+                            >
+                                {isDarkRef ? <Sun size={20} color={colors.primary} /> : <Moon size={20} color={colors.primary} />}
+                            </TouchableOpacity>
 
-                        <View style={styles.logoContainer}>
-                            <Image
-                                source={require('../../assets/images/logo.png')}
-                                style={styles.logoImage}
-                                resizeMode="contain"
-                            />
+                            <View style={styles.logoContainer}>
+                                <Image
+                                    source={require('../../assets/images/logo.png')}
+                                    style={styles.logoImage}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                            <Text style={styles.title}>
+                                {isRegister ? 'Crear Cuenta' : 'Bienvenid@'}
+                            </Text>
+                            <Text style={styles.subtitle}>
+                                {isRegister ? 'Regístrate para sincronizar tu negocio' : 'Inicia sesión para acceder a tu información'}
+                            </Text>
                         </View>
-                        <Text style={styles.title}>
-                            {isRegister ? 'Crear Cuenta' : 'Bienvenid@'}
-                        </Text>
-                        <Text style={styles.subtitle}>
-                            {isRegister ? 'Regístrate para sincronizar tu negocio' : 'Inicia sesión para acceder a tu información'}
-                        </Text>
-                    </View>
-                    <View style={styles.form}>
-                        {isRegister && (
-                            <>
-                                <View style={styles.inputGroup}>
-                                    <Text style={styles.label}>Nombre Completo</Text>
-                                    <View style={styles.inputWrapper}>
-                                        <UserIcon size={20} color={colors.textSecondary} style={styles.inputIcon} />
-                                        <TextInput
-                                            style={styles.input}
-                                            placeholder="Tu nombre completo"
-                                            placeholderTextColor={colors.textSecondary}
-                                            value={displayName}
-                                            onChangeText={setDisplayName}
-                                            autoCapitalize="words"
-                                        />
+                        <View style={styles.form}>
+                            {isRegister && (
+                                <>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.label}>Nombre Completo</Text>
+                                        <View style={styles.inputWrapper}>
+                                            <UserIcon size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                                            <TextInput
+                                                style={styles.input}
+                                                placeholder="Tu nombre completo"
+                                                placeholderTextColor={colors.textSecondary}
+                                                value={displayName}
+                                                onChangeText={setDisplayName}
+                                                autoCapitalize="words"
+                                            />
+                                        </View>
                                     </View>
-                                </View>
 
-                                <View style={styles.inputGroup}>
-                                    <Text style={styles.label}>Teléfono</Text>
-                                    <View style={styles.inputWrapper}>
-                                        <Smartphone size={20} color={colors.textSecondary} style={styles.inputIcon} />
-                                        <TextInput
-                                            style={styles.input}
-                                            placeholder="Ej. 5551234567"
-                                            placeholderTextColor={colors.textSecondary}
-                                            value={phone}
-                                            onChangeText={setPhone}
-                                            keyboardType="phone-pad"
-                                        />
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.label}>Teléfono</Text>
+                                        <View style={styles.inputWrapper}>
+                                            <Smartphone size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                                            <TextInput
+                                                style={styles.input}
+                                                placeholder="Ej. 5551234567"
+                                                placeholderTextColor={colors.textSecondary}
+                                                value={phone}
+                                                onChangeText={setPhone}
+                                                keyboardType="phone-pad"
+                                            />
+                                        </View>
                                     </View>
+                                </>
+                            )}
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Correo Electrónico</Text>
+                                <View style={styles.inputWrapper}>
+                                    <Mail size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="correo@ejemplo.com"
+                                        placeholderTextColor={colors.textSecondary}
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        autoCapitalize="none"
+                                        keyboardType="email-address"
+                                    />
                                 </View>
-                            </>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Contraseña</Text>
+                                <View style={styles.inputWrapper}>
+                                    <LogIn size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="••••••••"
+                                        placeholderTextColor={colors.textSecondary}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry={!showPassword}
+                                    />
+                                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                        {showPassword ? (
+                                            <EyeOff size={20} color={colors.textSecondary} />
+                                        ) : (
+                                            <Eye size={20} color={colors.textSecondary} />
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+
+                        {!isRegister && (
+                            <TouchableOpacity onPress={() => setForgotPasswordModalVisible(true)} style={{ width: '100%' }}>
+                                <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+                            </TouchableOpacity>
                         )}
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Correo Electrónico</Text>
-                            <View style={styles.inputWrapper}>
-                                <Mail size={20} color={colors.textSecondary} style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="correo@ejemplo.com"
-                                    placeholderTextColor={colors.textSecondary}
-                                    value={email}
-                                    onChangeText={setEmail}
-                                    autoCapitalize="none"
-                                    keyboardType="email-address"
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Contraseña</Text>
-                            <View style={styles.inputWrapper}>
-                                <LogIn size={20} color={colors.textSecondary} style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="••••••••"
-                                    placeholderTextColor={colors.textSecondary}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    secureTextEntry={!showPassword}
-                                />
-                                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                                    {showPassword ? (
-                                        <EyeOff size={20} color={colors.textSecondary} />
-                                    ) : (
-                                        <Eye size={20} color={colors.textSecondary} />
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-
-                    {!isRegister && (
-                        <TouchableOpacity onPress={() => setForgotPasswordModalVisible(true)}>
-                            <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
-                        </TouchableOpacity>
-                    )}
-
-                    <View style={{ gap: 12, width: '100%', marginTop: 24 }}>
-                        <StitchButton
-                            title={loading ? 'Procesando...' : (isRegister ? 'Registrarse' : 'Entrar')}
-                            onPress={handleAuth}
-                            loading={loading}
-                            style={styles.button}
-                        />
-                    </View>
-
-                    <View style={styles.divider}>
-                        <View style={styles.line} />
-                        <Text style={styles.dividerText}>o continúa con</Text>
-                        <View style={styles.line} />
-                    </View>
-
-                    <View style={styles.socialButtons}>
-                        <TouchableOpacity
-                            style={[styles.socialButton, { flex: 1 }]}
-                            onPress={handleGoogleLogin}
-                        >
-                            <Image
-                                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }}
-                                style={{ width: 22, height: 22 }}
+                        <View style={{ gap: 12, width: '100%', marginTop: 24 }}>
+                            <StitchButton
+                                title={loading ? 'Procesando...' : (isRegister ? 'Registrarse' : 'Entrar')}
+                                onPress={handleAuth}
+                                loading={loading}
+                                style={styles.button}
                             />
-                            <Text style={styles.socialButtonText}>Continuar con Google</Text>
+                        </View>
+
+                        <View style={styles.divider}>
+                            <View style={styles.line} />
+                            <Text style={styles.dividerText}>o continúa con</Text>
+                            <View style={styles.line} />
+                        </View>
+
+                        <View style={styles.socialButtons}>
+                            <TouchableOpacity
+                                style={[styles.socialButton, { flex: 1 }]}
+                                onPress={handleGoogleLogin}
+                            >
+                                <Image
+                                    source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }}
+                                    style={{ width: 22, height: 22 }}
+                                />
+                                <Text style={styles.socialButtonText}>Continuar con Google</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.switchContainer}
+                            onPress={() => setIsRegister(!isRegister)}
+                        >
+                            <Text style={styles.switchText}>
+                                {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
+                            </Text>
                         </TouchableOpacity>
                     </View>
-
-                    <TouchableOpacity
-                        style={styles.switchContainer}
-                        onPress={() => {
-                            setIsRegister(!isRegister);
-                        }}
-                    >
-                        <Text style={styles.switchText}>
-                            {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
-                        </Text>
-                    </TouchableOpacity>
                 </ScrollView>
             </KeyboardAvoidingView>
-
-
 
             <Modal
                 animationType="fade"
@@ -355,8 +558,8 @@ export default function AuthScreen() {
                 visible={forgotPasswordModalVisible}
                 onRequestClose={() => setForgotPasswordModalVisible(false)}
             >
-                <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
-                    <View style={[styles.modalContent, { backgroundColor: isDark ? colors.card : 'rgba(255, 255, 255, 0.98)', padding: 24, borderRadius: 28, width: '90%', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20 }]}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
                         <TouchableOpacity
                             style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}
                             onPress={() => setForgotPasswordModalVisible(false)}
@@ -401,168 +604,4 @@ export default function AuthScreen() {
             </Modal>
         </SafeAreaView>
     );
-};
-
-const getStyles = (colors: any) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.background,
-    },
-    bgGlowWrapper: {
-        ...StyleSheet.absoluteFillObject,
-        overflow: 'hidden',
-        zIndex: -1,
-    },
-    glowSphere: {
-        position: 'absolute',
-        width: 350,
-        height: 350,
-        borderRadius: 175,
-        opacity: 0.5,
-    },
-    scrollContent: {
-        padding: 32,
-        paddingTop: Platform.OS === 'android' ? 60 : 32, // More space for branding
-        flexGrow: 1,
-        justifyContent: 'center',
-    },
-    header: {
-        alignItems: 'center',
-        marginBottom: IS_SMALL_DEVICE ? 16 : 32,
-        position: 'relative',
-    },
-    themeToggle: {
-        position: 'absolute',
-        top: -10,
-        right: -10,
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        borderWidth: 1,
-        borderColor: colors.border,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10,
-    },
-    logoContainer: {
-        width: IS_SMALL_DEVICE ? 160 : 280,
-        height: IS_SMALL_DEVICE ? 160 : 280,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: IS_SMALL_DEVICE ? 0 : 8,
-    },
-    logoImage: {
-        width: '100%',
-        height: '100%',
-    },
-    title: {
-        color: colors.text,
-        fontSize: 28,
-        fontWeight: '900',
-        textAlign: 'center',
-    },
-    subtitle: {
-        color: colors.textSecondary,
-        fontSize: 16,
-        textAlign: 'center',
-        marginTop: 8,
-    },
-    form: {
-        width: '100%',
-    },
-    inputGroup: {
-        marginBottom: 20,
-    },
-    label: {
-        color: colors.text,
-        fontSize: 14,
-        fontWeight: '700',
-        marginBottom: 8,
-    },
-    inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.card,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        paddingHorizontal: 16,
-    },
-    inputIcon: {
-        marginRight: 12,
-    },
-    input: {
-        flex: 1,
-        height: 56,
-        color: colors.text,
-        fontSize: 16,
-    },
-    forgotText: {
-        color: colors.primary,
-        fontSize: 14,
-        fontWeight: '600',
-        textAlign: 'right',
-        marginBottom: 24,
-    },
-    button: {
-        marginTop: 8,
-    },
-    switchContainer: {
-        marginTop: 24,
-        alignItems: 'center',
-    },
-    switchText: {
-        color: colors.textSecondary,
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    divider: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 24,
-    },
-    line: {
-        flex: 1,
-        height: 1,
-        backgroundColor: colors.border,
-    },
-    dividerText: {
-        color: colors.textSecondary,
-        paddingHorizontal: 16,
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    socialButtons: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 8,
-    },
-    socialButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.card,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: 16,
-        height: 56,
-        gap: 12,
-    },
-    socialButtonText: {
-        color: colors.text,
-        fontSize: 16,
-        fontWeight: '600',
-        textAlign: 'center',
-    },
-    modalOverlay: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalContent: {
-        // defined inline for now to access colors easier
-    }
-});
-
-
+}

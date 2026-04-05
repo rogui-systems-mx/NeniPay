@@ -11,7 +11,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { LogBox } from 'react-native';
+import { LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
 
 // Ignore specific warnings related to Expo Go and Push Notifications
@@ -40,11 +40,13 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    Manrope_400Regular,
-    Manrope_500Medium,
-    Manrope_600SemiBold,
-    Manrope_700Bold,
-    Manrope_800ExtraBold,
+    ...(Platform.OS !== 'web' ? {
+      Manrope_400Regular,
+      Manrope_500Medium,
+      Manrope_600SemiBold,
+      Manrope_700Bold,
+      Manrope_800ExtraBold,
+    } : {}),
     ...FontAwesome.font,
   });
 
@@ -83,14 +85,16 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav({ loaded }: { loaded: boolean }) {
-  const { colors, isDark } = useTheme();
+  const theme = useTheme();
+  const { colors } = theme;
+  const isDarkRef = theme.isDark;
 
   // If fonts aren't loaded, we still need to render the provider chain
   // but we can delay the Stack rendering to avoid broken UI
   if (!loaded) return null;
 
   return (
-    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={isDarkRef ? DarkTheme : DefaultTheme}>
       <Stack
         screenOptions={{
           headerStyle: {
