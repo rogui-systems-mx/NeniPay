@@ -1,36 +1,32 @@
 {
   "expo": {
-    "name": "NeniPay Web",
-    "slug": "nenipay-web",
-    "platforms": [
-      "android",
-      "ios",
-      "web"
-    ],
+    "name": "NeniPay",
+    "slug": "nenipay",
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "nenipay-web",
+    "scheme": "nenipay",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0f172a"
     },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rogui.nenipay"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0f172a"
+      },
+      "package": "com.rogui.nenipay"
+    },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png",
-      "pwa": {
-        "name": "NeniPay",
-        "shortName": "NeniPay",
-        "description": "Gestión de ventas y cobros para Nenis",
-        "themeColor": "#0f172a",
-        "backgroundColor": "#0f172a",
-        "display": "standalone",
-        "orientation": "portrait",
-        "icon": "./assets/images/icon.png"
-      }
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
