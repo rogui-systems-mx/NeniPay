@@ -611,7 +611,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24, // Increased from 20
-    paddingTop: Platform.OS === 'android' ? 24 : 10,
+    paddingTop: Platform.OS === 'android' ? 45 : 10,
     paddingBottom: 15,
     backgroundColor: 'transparent',
     zIndex: 10,
