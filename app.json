@@ -14,14 +14,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.rogui.nenipay"
+      "bundleIdentifier": "com.roguisystems.nenipay"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0f172a"
       },
-      "package": "com.rogui.nenipay",
+      "package": "com.roguisystems.nenipay",
       "versionCode": 2,
       "googleServicesFile": "./google-services.json"
     },
