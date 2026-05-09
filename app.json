@@ -22,7 +22,8 @@
         "backgroundColor": "#0f172a"
       },
       "package": "com.rogui.nenipay",
-      "versionCode": 2
+      "versionCode": 2,
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",

@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "451033486398",
+    "project_id": "nenipay-b1b66",
+    "storage_bucket": "nenipay-b1b66.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451033486398:android:a83bf17b703b13cc862d6f",
+        "android_client_info": {
+          "package_name": "com.roguisystems.nenipay"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "451033486398-bg3niqdg3342bieh67p459mrnpp7l60f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.roguisystems.nenipay",
+            "certificate_hash": "8a7d0236e45fd270252a8ad6f982c066e629541e"
+          }
+        },
+        {
+          "client_id": "451033486398-nbti8abb46eq35u24skv21om5krap3s4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.roguisystems.nenipay",
+            "certificate_hash": "cbd0c3ff46a2566064914128b00a0d9ed8b8916a"
+          }
+        },
+        {
+          "client_id": "451033486398-1pinfnbqg6kese7fc6l8k8eb45e40uc8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSbnGOdWiF9nQV4cVjfsrXihrg-IbacAA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "451033486398-1pinfnbqg6kese7fc6l8k8eb45e40uc8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
