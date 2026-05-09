@@ -2,7 +2,7 @@
   "expo": {
     "name": "NeniPay",
     "slug": "nenipay",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "nenipay",
@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0f172a"
       },
-      "package": "com.rogui.nenipay"
+      "package": "com.rogui.nenipay",
+      "versionCode": 2
     },
     "web": {
       "bundler": "metro",

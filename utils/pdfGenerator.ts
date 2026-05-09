@@ -44,12 +44,12 @@ const getOptimizedBase64 = async (uri: string): Promise<string | null> => {
             localUri = `file://${uri}`;
         }
 
-        // Manipulate the image: resize to max 400px width and compress
+        // Manipulate the image: resize to max 150px width and compress to reduce memory
         // Note: Expo Web handles localUri/remote URL in ImageManipulator if CORS allows
         const manipulatedImage = await ImageManipulator.manipulateAsync(
             localUri,
-            [{ resize: { width: 400 } }], // Resize width to 400px (aspect ratio preserved)
-            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+            [{ resize: { width: 150 } }], // Resize width to 150px (aspect ratio preserved)
+            { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true }
         );
 
         // Cleanup the temp download file if it exists
