@@ -317,66 +317,7 @@ export default function AjustesScreen() {
 
                     <SettingsCard title="Versión 2.0.0" description="Official Release" icon={Package} />
 
-                    {user && (
-                        <View style={{ marginTop: 24, padding: 16, backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                                <ShieldCheck size={16} color={colors.primary} />
-                                <Text style={{ color: colors.text, fontSize: 12, fontFamily: 'Manrope_800ExtraBold', marginLeft: 8 }}>DIAGNÓSTICO DE SESIÓN</Text>
-                            </View>
-                            <Text style={{ color: colors.textSecondary, fontSize: 10, fontFamily: 'Manrope_600SemiBold', marginBottom: 4 }}>ID INTERNO (UID):</Text>
-                            <Text style={{ color: colors.text, fontSize: 11, fontFamily: 'SpaceMono', marginBottom: 12 }} selectable>{user.uid}</Text>
-                            
-                            <Text style={{ color: colors.textSecondary, fontSize: 10, fontFamily: 'Manrope_600SemiBold', marginBottom: 4 }}>MÉTODO DE ENTRADA:</Text>
-                            <Text style={{ color: colors.primary, fontSize: 12, fontFamily: 'Manrope_800ExtraBold' }}>
-                                {user.providerData?.[0]?.providerId === 'google.com' ? 'GOOGLE (DIRECTO)' : 
-                                 user.providerData?.[0]?.providerId === 'password' ? 'CORREO Y CONTRASEÑA' : 
-                                 user.providerData?.[0]?.providerId || 'DESCONOCIDO'}
-                            </Text>
 
-                            <View style={{ marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border }}>
-                                <Text style={{ color: colors.text, fontSize: 13, fontFamily: 'Manrope_800ExtraBold', marginBottom: 8 }}>🔍 BUSCADOR DE EMERGENCIA</Text>
-                                <Text style={{ color: colors.textSecondary, fontSize: 11, marginBottom: 12 }}>Si perdiste tus datos, escribe el nombre de un cliente (ej. Naye) para buscarlo en toda la base de datos.</Text>
-                                <StitchInput 
-                                    label="BUSCAR CLIENTE"
-                                    placeholder="Nombre del cliente a buscar" 
-                                    value={confirmText} 
-                                    onChangeText={setConfirmText} 
-                                    isDark={isDark}
-                                />
-                                <StitchButton 
-                                    title={loading ? "BUSCANDO..." : "BUSCAR MIS DATOS"} 
-                                    onPress={async () => {
-                                        if (!confirmText.trim()) return;
-                                        setLoading(true);
-                                        try {
-                                            const { collection, getDocs, db } = require('../../utils/firebase');
-                                            const querySnapshot = await getDocs(collection(db, 'users'));
-                                            let found = false;
-                                            querySnapshot.forEach((doc: any) => {
-                                                const data = doc.data();
-                                                const clients = data.clients || [];
-                                                const match = clients.find((c: any) => c.name.toLowerCase().includes(confirmText.toLowerCase()));
-                                                if (match) {
-                                                    found = true;
-                                                    Alert.alert(
-                                                        '¡DATOS ENCONTRADOS!', 
-                                                        `Encontré a "${match.name}" en la cuenta: ${doc.id.substring(0, 8)}...\n\nSaca una captura de pantalla y envíasela al soporte de Rogui Systems con este ID completo: ${doc.id}`
-                                                    );
-                                                }
-                                            });
-                                            if (!found) Alert.alert('Sin resultados', 'No encontré ningún cliente con ese nombre en ninguna cuenta.');
-                                        } catch (e: any) {
-                                            console.error('Search error:', e);
-                                            Alert.alert('Error de Permisos', 'No pudimos buscar en toda la base de datos por seguridad. Por favor contacta a soporte.');
-                                        } finally {
-                                            setLoading(false);
-                                        }
-                                    }}
-                                    loading={loading}
-                                />
-                            </View>
-                        </View>
-                    )}
                 </View>
 
                 <View style={styles.footer}>
